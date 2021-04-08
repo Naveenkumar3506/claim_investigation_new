@@ -80,7 +80,7 @@ class ClaimProvider extends BaseProvider {
       AppLog.print('right----> ' + r.toString());
       final parsed = r.cast<Map<String, dynamic>>();
       List<CaseModel> arrayCases =
-          parsed.map<CaseModel>((json) => CaseModel.fromJson(json)).toList();
+      parsed.map<CaseModel>((json) => CaseModel.fromJson(json)).toList();
       if (arrayCases.isNotEmpty) {
         if (isRefresh) {
           listCases.clear();
@@ -122,6 +122,71 @@ class ClaimProvider extends BaseProvider {
     }, (r) {
       AppLog.print('right----> ' + r.toString());
       return true;
+    });
+  }
+
+  Future getNewCaseList(bool isRefresh, String type) async {
+    if (isRefresh) {
+      caseListPageNumber = 1;
+      listCases.clear();
+    }
+    //
+    if (caseListPageNumber > 1) {
+      isLoadMore = true;
+    } else {
+      isLoading = true;
+    }
+
+    String path = "";
+    if (type == "PIV/PRV/LIVE count") {
+      path = ApiConstant.API_GET_CASE_INTIMATION_LIST;
+    } else if (type == "New") {
+      path = ApiConstant.API_GET_NEW_CASE_LIST;
+    } else if (type == "Claim Document Pickup") {
+      path = ApiConstant.API_GET_CDP_CASE_LIST;
+    } else if (type == "Closed") {
+      path = ApiConstant.API_GET_CLOSED_CASE_LIST;
+    } else {
+      path = ApiConstant.API_GET_CASE_SUBMITTED_LIST;
+    }
+
+    final response = await super.apiClient.callWebService(
+        path: path,
+        method: ApiMethod.POST,
+        body: {
+          "username": pref.user.username,
+          "pageNum": caseListPageNumber,
+          "pagesize": fetchDataSize
+        },
+        withAuth: false);
+
+    isLoading = false;
+    isLoadMore = false;
+
+    response.fold((l) {
+      AppLog.print('left----> ' + l.toString());
+      showErrorToast(l.toString());
+    }, (r) {
+      AppLog.print('right----> ' + r.toString());
+      final parsed = r.cast<Map<String, dynamic>>();
+      List<CaseModel> arrayCases =
+      parsed.map<CaseModel>((json) => CaseModel.fromJson(json)).toList();
+      if (arrayCases.isNotEmpty) {
+        if (isRefresh) {
+          listCases.clear();
+          if (scrollController != null) {
+            // scrollController.animateTo(
+            //   0.0,
+            //   curve: Curves.easeOut,
+            //   duration: const Duration(milliseconds: 300),
+            // );
+          }
+        }
+        listCases.addAll(arrayCases);
+        caseListPageNumber += 1;
+      } else {
+        showSuccessToast(isLoadMore ? 'you are done' : 'No Recipes');
+      }
     });
   }
 

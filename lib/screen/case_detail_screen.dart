@@ -13,11 +13,13 @@ import 'package:claim_investigation/util/color_contants.dart';
 import 'package:claim_investigation/util/size_constants.dart';
 import 'package:claim_investigation/widgets/adaptive_widgets.dart';
 import 'package:claim_investigation/widgets/video_player_screen.dart';
+import 'package:esys_flutter_share/esys_flutter_share.dart';
 import 'package:file/file.dart';
 import 'package:file/local.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_audio_recorder/flutter_audio_recorder.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
@@ -242,7 +244,8 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
             .submitReport(_caseModel)
             .then((isSuccess) {
           if (isSuccess) {
-            Provider.of<ClaimProvider>(SizeConfig.cxt, listen: false).getCaseList(true);
+            Provider.of<ClaimProvider>(SizeConfig.cxt, listen: false)
+                .getCaseList(true);
             showSuccessToast('Cases Details submitted successfully');
           } else {
             showErrorToast('Oops, Something went wrong. Please try later');
@@ -545,6 +548,7 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
               _buildImageAndVideo(),
               _buildAudioBody(),
               _buildPDFBody(),
+              _buildClaimFormatBody(),
               _buildSignatureBody(),
               Padding(
                 padding: const EdgeInsets.all(15.0),
@@ -854,17 +858,16 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                 onTap: () {
                   imagePickerDialog(() async {
                     //camera
-                    await getImageFile(ImageSource.camera).then((value){
+                    await getImageFile(ImageSource.camera).then((value) {
                       if (value != null) {
                         setState(() {
                           _imageFile = value;
                         });
                       }
                     });
-
                   }, () async {
                     //gallery
-                    await getImageFile(ImageSource.gallery).then((value){
+                    await getImageFile(ImageSource.gallery).then((value) {
                       if (value != null) {
                         setState(() {
                           _imageFile = value;
@@ -874,17 +877,23 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                   });
                 },
                 child: _imageFile == null
-                    ? Container(
-                        height: SizeConfig.screenHeight * .3,
-                        decoration: BoxDecoration(
-                          image: DecorationImage(
-                            image: AssetImage(
-                              'assets/images/ic_upload_placeholder.png',
-                            ),
-                            fit: BoxFit.fill,
+                    ? Stack(alignment: Alignment.center, children: [
+                        Container(
+                          height: SizeConfig.screenHeight * .3,
+                          decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey)),
+                        ),
+                        SizedBox(
+                          height: 80,
+                          width: 80,
+                          child: Image.asset(
+                            'assets/images/ic_image_upload_placeholder.png',
                           ),
                         ),
-                      )
+                        Positioned(
+                            top: (SizeConfig.screenHeight * .3) / 2 + 60,
+                            child: Text("Upload Image"))
+                      ])
                     : SizedBox(
                         height: SizeConfig.screenHeight * .3,
                         width: SizeConfig.screenWidth,
@@ -946,17 +955,23 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                   });
                 },
                 child: _videoFile == null
-                    ? Container(
-                        height: SizeConfig.screenHeight * .3,
-                        decoration: BoxDecoration(
-                          image: DecorationImage(
-                            image: AssetImage(
-                              'assets/images/ic_upload_placeholder.png',
-                            ),
-                            fit: BoxFit.fill,
+                    ? Stack(alignment: Alignment.center, children: [
+                        Container(
+                          height: SizeConfig.screenHeight * .3,
+                          decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey)),
+                        ),
+                        SizedBox(
+                          height: 80,
+                          width: 80,
+                          child: Image.asset(
+                            'assets/images/ic_video_upload_placeholder.png',
                           ),
                         ),
-                      )
+                        Positioned(
+                            top: (SizeConfig.screenHeight * .3) / 2 + 60,
+                            child: Text("Upload Video"))
+                      ])
                     : SizedBox(
                         height: SizeConfig.screenHeight * .3,
                         width: SizeConfig.screenWidth,
@@ -1093,5 +1108,89 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
             ),
           );
         });
+  }
+
+  Widget _buildClaimFormatBody() {
+    return Card(
+      child: ListTile(
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              height: 15,
+            ),
+            Text(
+              _caseModel.intimationType == 'CDP' ? 'Document Pickup Form : ' : 'PIV/PIRV/LIVE Form : ',
+              style: TextStyle(color: Colors.black, fontSize: 15),
+            ),
+            InkWell(
+              onTap: () async {
+               if (_caseModel.intimationType == 'CDP') {
+                 final ByteData bytes = await rootBundle.load('assets/images/ClaimForm.xlsx');
+                 await Share.file('Doc', 'ClaimForm.xlsx', bytes.buffer.asUint8List(), 'application/vnd.ms-excel', text: 'Claim Form format for document collection');
+               } else {
+                 final ByteData bytes = await rootBundle.load('assets/images/PIVReport.xls');
+                 await Share.file('Doc', 'PIVReport.xls', bytes.buffer.asUint8List(), 'application/vnd.ms-excel', text: 'PIV PIRV Report Format');
+               }
+              },
+              child: Text(
+                '(Sample Download)',
+                style: TextStyle(color: Colors.blue, fontSize: 15),
+              ),
+            ),
+            SizedBox(
+              height: 15,
+            ),
+            Row(
+              children: [
+                Flexible(
+                  child: TextField(
+                    controller: pdfName1TextController,
+                    enabled: false,
+                    maxLines: 1,
+                    style: Theme.of(context).textTheme.headline3,
+                    decoration: InputDecoration(
+                      hintText: "Select File",
+                      filled: false,
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  width: 15,
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    FilePickerResult result = await FilePicker.platform
+                        .pickFiles(
+                           // type: FileType.custom,
+                           // allowedExtensions: ['xlsx, xls, csv'],
+                            allowCompression: true);
+                    if (result != null) {
+                      setState(() {
+                        PlatformFile platformFile = result.files.first;
+                        if (platformFile.extension == "xlsx" || platformFile.extension == "xls" || platformFile.extension == "csv") {
+                          _pdfFile1 = io.File(result.files.single.path);
+                          _pdfFileName1 = platformFile.name;
+                          pdfName1TextController.text = _pdfFileName1;
+                        } else {
+                          Get.snackbar(
+                              'Alert', 'Please select excel or csv files only.');
+                        }
+                      });
+                    } else {
+                      // User canceled the picker
+                    }
+                  },
+                  child: Text('Select'),
+                )
+              ],
+            ),
+            SizedBox(
+              height: 15,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

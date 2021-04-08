@@ -72,7 +72,16 @@ class _HomeScreenState extends BaseState<HomeScreen> {
           ),
         ],
       ),
-      onTap: () {},
+      onTap: () async {
+        showLoadingDialog();
+        await Provider.of<ClaimProvider>(SizeConfig.cxt, listen: false)
+            .getNewCaseList(true, title)
+            .then((value) {
+          //hide dialog
+          Navigator.pop(context);
+          Get.toNamed(CaseListScreen.routeName);
+        });
+      },
     );
   }
 

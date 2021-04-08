@@ -1,9 +1,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     package="com.xangars.claim_investigation">
 
     <application
         android:icon="@mipmap/ic_launcher"
-        android:label="Pre Claim"
+        android:label="Preclaim Dev"
+        android:screenOrientation="portrait"
         android:usesCleartextTraffic="true">
         <activity
             android:name=".MainActivity"
@@ -37,6 +39,11 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
+        <activity
+            android:name="com.yalantis.ucrop.UCropActivity"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
     </application>
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />

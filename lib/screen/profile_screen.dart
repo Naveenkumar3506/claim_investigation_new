@@ -1,6 +1,8 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:claim_investigation/base/base_page.dart';
 import 'package:claim_investigation/providers/auth_provider.dart';
 import 'package:claim_investigation/providers/claim_provider.dart';
+import 'package:claim_investigation/screen/edit_profile_screen.dart';
 import 'package:claim_investigation/util/color_contants.dart';
 import 'package:claim_investigation/util/size_constants.dart';
 import 'package:claim_investigation/widgets/adaptive_widgets.dart';
@@ -18,7 +20,6 @@ class ProfileScreen extends BasePage {
 }
 
 class _ProfileScreenState extends BaseState<ProfileScreen> {
-
   void _showLogoutAlert() {
     showAdaptiveAlertDialog(
         context: context,
@@ -59,20 +60,18 @@ class _ProfileScreenState extends BaseState<ProfileScreen> {
             padding: EdgeInsetsDirectional.only(top: 15.0),
             width: double.maxFinite,
             height: appHelper.isTablet(context)
-                ? SizeConfig.screenWidth * 0.4
-                : SizeConfig.screenHeight * 0.3,
+                ? SizeConfig.screenWidth * 0.5
+                : SizeConfig.screenHeight * 0.32,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 CircleAvatar(
                   backgroundColor: Colors.white,
                   radius: SizeConfig.screenHeight * 0.07,
-                  // backgroundImage: _userModel.profileImage == null ||
-                  //     _userModel.profileImage.isEmpty
-                  //     ? AssetImage('assets/images/ic_profile_placeholder.jpg')
-                  //     : CachedNetworkImageProvider(_userModel.profileImage),
-                  backgroundImage:
-                      AssetImage('assets/images/ic_profile_placeholder.jpg'),
+                  backgroundImage: pref.user.userImage == null ||
+                      pref.user.userImage.isEmpty
+                      ? AssetImage('assets/images/ic_profile_placeholder.jpg')
+                      : CachedNetworkImageProvider(pref.user.userImage),
                 ),
                 SizedBox(
                   height: 15,
@@ -86,7 +85,16 @@ class _ProfileScreenState extends BaseState<ProfileScreen> {
                   style: TextStyle(color: Colors.grey, fontSize: 13.0),
                 ),
                 SizedBox(
-                  height: 20,
+                  height: 5,
+                ),
+                TextButton(
+                  onPressed: () {
+                    Get.toNamed(EditProfileScreen.routeName);
+                  },
+                  child: Text(
+                    'Edit Profile',
+                    style: TextStyle(color: primaryColor, fontSize: 13.0),
+                  ),
                 ),
               ],
             ),
@@ -102,7 +110,10 @@ class _ProfileScreenState extends BaseState<ProfileScreen> {
               Icons.lock,
               color: primaryColor,
             ),
-            title: Text('Change password', style: TextStyle(color: Colors.black),),
+            title: Text(
+              'Change password',
+              style: TextStyle(color: Colors.black),
+            ),
             onTap: () {
               Get.toNamed(ChangePasswordScreen.routeName);
             },

@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:convert';
 import 'dart:async';
 import 'package:claim_investigation/models/case_model.dart';
+import 'package:claim_investigation/models/user_model.dart';
 import 'package:claim_investigation/providers/auth_provider.dart';
 import 'package:claim_investigation/storage/app_pref.dart';
 import 'package:claim_investigation/util/app_enum.dart';
@@ -205,7 +206,59 @@ class ApiClient {
       return response;
     }).catchError((e) {
       print(e);
+      return Left(AppException(e.toString()));
+    });
+    return res;
+  }
 
+  Future uploadProfileFiles(
+      {@required String path,
+        Encoding encoding,
+        File file,
+        MimeMediaType mimeType,
+        UserModel userModel}) async {
+    Map<String, String> headers = Map();
+    headers[HttpHeaders.contentTypeHeader] = "application/json";
+
+    /// Check internet connection
+    var connectivityResult = await (Connectivity().checkConnectivity());
+    if (connectivityResult == ConnectivityResult.none) {
+      return Left(AppException('Please check your internet connection'));
+    }
+
+    var request = http.MultipartRequest(
+      'POST',
+      Uri.parse(
+        ApiConstant.API_BASE_URL + ApiConstant.API_PROFILE_UPLOAD,
+      ),
+    );
+
+    request.fields['username'] = userModel.username;
+    request.fields['full_name'] = userModel.fullName;
+    request.fields['emailId'] = userModel.userEmail;
+    request.fields['contactNumber'] = userModel.mobileNumber;
+
+    if (file != null) {
+      if (mimeType == MimeMediaType.image) {
+        request.files.add(
+          await http.MultipartFile.fromPath('updatePhoto', file.path),
+          // await http.MultipartFile.fromPath('uploadedFile', file.path,contentType: http_parser.MediaType('image', 'jpeg')),
+        );
+      } else if (mimeType == MimeMediaType.video) {
+        request.files.add(
+          await http.MultipartFile.fromPath('updatePhoto', file.path,
+              contentType: new http_parser.MediaType('video', 'mp4')),
+        );
+      }
+    }
+
+    request.headers.addAll(headers);
+    request.persistentConnection = true;
+
+    final res = await request.send().then((response) {
+      return response;
+    }).catchError((e) {
+      print(e);
       return Left(AppException(e.toString()));
     });
     return res;

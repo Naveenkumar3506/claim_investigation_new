@@ -156,7 +156,7 @@ abstract class BaseState<Page extends BasePage> extends State<Page> {
   Future<File> getVideoFile(ImageSource source) async {
     final picker = ImagePicker();
     final tempFile = await picker.getVideo(
-        source: source, maxDuration: const Duration(minutes: 5));
+        source: source, maxDuration: const Duration(minutes: 1));
     if (tempFile != null) {
       debugPrint("${File(tempFile.path)}");
       return File(tempFile.path);
