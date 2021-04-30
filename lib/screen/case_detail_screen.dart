@@ -3,10 +3,13 @@ import 'dart:io' as io;
 import 'dart:typed_data';
 
 import 'package:audioplayers/audioplayers.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:claim_investigation/base/base_page.dart';
 import 'package:claim_investigation/models/case_model.dart';
 import 'package:claim_investigation/providers/claim_provider.dart';
 import 'package:claim_investigation/providers/multipart_upload_provider.dart';
+import 'package:claim_investigation/screen/full_image_screen.dart';
+import 'package:claim_investigation/screen/pdfView_screen.dart';
 import 'package:claim_investigation/util/app_enum.dart';
 import 'package:claim_investigation/util/app_helper.dart';
 import 'package:claim_investigation/util/color_contants.dart';
@@ -14,13 +17,14 @@ import 'package:claim_investigation/util/size_constants.dart';
 import 'package:claim_investigation/widgets/adaptive_widgets.dart';
 import 'package:claim_investigation/widgets/video_player_screen.dart';
 import 'package:esys_flutter_share/esys_flutter_share.dart';
-import 'package:file/file.dart';
+import 'package:ext_storage/ext_storage.dart';
 import 'package:file/local.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_audio_recorder/flutter_audio_recorder.dart';
+import 'package:flutter_cached_pdfview/flutter_cached_pdfview.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
@@ -28,6 +32,7 @@ import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:signature/signature.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:video_thumbnail/video_thumbnail.dart';
 
 class CaseDetailScreen extends BasePage {
@@ -42,14 +47,22 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
   final formatCurrency = new NumberFormat.simpleCurrency(locale: 'en_IN');
   final dateFormatter = DateFormat('dd/MM/yyyy');
   final _descFocusNode = FocusNode();
-  String descText = '';
   TextEditingController descTextController = TextEditingController();
+  TextEditingController remarksTextController = TextEditingController();
   TextEditingController pdfName1TextController = TextEditingController();
   TextEditingController pdfName2TextController = TextEditingController();
   TextEditingController pdfName3TextController = TextEditingController();
-  io.File _imageFile, _videoFile, _pdfFile1, _pdfFile2, _pdfFile3, _signFile;
+  TextEditingController documentTextController = TextEditingController();
+  io.File _imageFile,
+      _videoFile,
+      _pdfFile1,
+      _pdfFile2,
+      _pdfFile3,
+      _signFile,
+      _documentFile,
+      _audioFile;
   Uint8List _thumbnail;
-  String _pdfFileName1, _pdfFileName2, _pdfFileName3;
+  String _pdfFileName1, _pdfFileName2, _pdfFileName3, _documentFileName;
   Timer timer;
   FlutterAudioRecorder _recorder;
   Recording _current;
@@ -61,6 +74,9 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
     penColor: Colors.black,
     exportBackgroundColor: Colors.white,
   );
+  bool isNotEditable = false;
+  String videoThumbnailPath;
+  AudioPlayerState audioPlayerState;
 
   @override
   void initState() {
@@ -69,12 +85,55 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
     super.initState();
     _initAudioRecording();
     _controller.addListener(() => print("Value changed"));
+    if (_caseModel.caseStatus.toLowerCase() == "closed".toLowerCase()) {
+      isNotEditable = true;
+      //
+      if (_caseModel.pdf1FilePath != null &&
+          _caseModel.pdf1FilePath.isNotEmpty) {
+        pdfName1TextController.text = 'PDF 1';
+      }
+      if (_caseModel.pdf2FilePath != null &&
+          _caseModel.pdf2FilePath.isNotEmpty) {
+        pdfName2TextController.text = 'PDF 2';
+      }
+      if (_caseModel.pdf3FilePath != null &&
+          _caseModel.pdf3FilePath.isNotEmpty) {
+        pdfName3TextController.text = 'PDF 3';
+      }
+      if (_caseModel.excelFilepath != null &&
+          _caseModel.excelFilepath.isNotEmpty) {
+        documentTextController.text = 'Excel';
+      }
+    }
+
+    try {
+      new Future.delayed(Duration(milliseconds: 500), () async {
+        await VideoThumbnail.thumbnailFile(
+          video: Uri.encodeFull(_caseModel.videoFilePath),
+          thumbnailPath: (await getTemporaryDirectory()).path,
+          imageFormat: ImageFormat.PNG,
+          // maxHeight: 64,
+          // specify the height of the thumbnail, let the width auto-scaled to keep the source aspect ratio
+          quality: 75,
+        ).then((value) {
+          setState(() {
+            videoThumbnailPath = value;
+          });
+        });
+      });
+    } on Exception catch (exception) {
+      print(exception.toString());
+    } catch (error) {
+      print(error.toString());
+    }
   }
 
   @override
   void dispose() {
     _descFocusNode.dispose();
     timer?.cancel();
+    audioPlayer.pause();
+    audioPlayer.dispose();
     super.dispose();
   }
 
@@ -93,7 +152,10 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
         // can add extension like ".mp4" ".wav" ".m4a" ".aac"
         customPath = appDocDirectory.path +
             customPath +
-            DateTime.now().millisecondsSinceEpoch.toString();
+            DateTime
+                .now()
+                .millisecondsSinceEpoch
+                .toString();
 
         // .wav <---> AudioFormat.WAV
         // .mp4 .m4a .aac <---> AudioFormat.AAC
@@ -121,6 +183,9 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
   }
 
   _startAudioRecording() async {
+    if (isNotEditable) {
+      return;
+    }
     try {
       await _recorder.start();
       var recording = await _recorder.current(channel: 0);
@@ -148,6 +213,9 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
   }
 
   _resumeAudioRecording() async {
+    if (isNotEditable) {
+      return;
+    }
     await _recorder.resume();
     var current = await _recorder.current(channel: 0);
     setState(() {
@@ -157,6 +225,9 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
   }
 
   _pauseAudioRecording() async {
+    if (isNotEditable) {
+      return;
+    }
     await _recorder.pause();
     var current = await _recorder.current(channel: 0);
     setState(() {
@@ -166,11 +237,14 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
   }
 
   _stopAudioRecording() async {
+    if (isNotEditable) {
+      return;
+    }
     var result = await _recorder.stop();
     print("Stop recording: ${result.path}");
     print("Stop recording: ${result.duration}");
-    File file = localFileSystem.file(result.path);
-    print("File length: ${await file.length()}");
+    _audioFile = localFileSystem.file(result.path);
+    print("File length: ${await _audioFile.length()}");
     setState(() {
       _current = result;
       _currentStatus = _current.status;
@@ -179,7 +253,17 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
 
   void onPlayAudio() async {
     audioPlayer = AudioPlayer();
-    await audioPlayer.play(_current.path, isLocal: true);
+    audioPlayer.onPlayerStateChanged.listen((AudioPlayerState state) {
+      setState(() {
+        audioPlayerState = state;
+      });
+    });
+    if (_caseModel.audioFilePath != null &&
+        _caseModel.audioFilePath.isNotEmpty) {
+      await audioPlayer.play(Uri.encodeFull(_caseModel.audioFilePath));
+    } else {
+      await audioPlayer.play(_current.path, isLocal: true);
+    }
   }
 
   void onStopAudio() async {
@@ -226,34 +310,108 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
   }
 
   Future _onSubmitReport() async {
+    if (isNotEditable) {
+      return;
+    }
     await _determinePosition().then((position) async {
       if (position != null) {
         print('got');
         _caseModel.caseDescription = descTextController.text;
         _caseModel.latitude = position.latitude.toString();
         _caseModel.longitude = position.longitude.toString();
+        _caseModel.newRemarks = remarksTextController.text;
 
-        // showLoadingDialog();
-        // final profileImageURL =
-        //     await Provider.of<MultiPartUploadProvider>(context, listen: false)
-        //         .uploadFile(
-        //             _imageFile, MimeMediaType.image, _caseModel, 'image');
-        // Navigator.pop(context);
+        showLoadingDialog();
+        var uploadCount = 0;
+        var resultCount = 0;
+        if (_imageFile != null) {
+          uploadCount++;
+          await Provider.of<MultiPartUploadProvider>(context, listen: false)
+              .uploadFile(_imageFile, MimeMediaType.image, _caseModel, 'image')
+              .then((isImageSuccess) async {
+            resultCount++;
+          });
+        }
+        if (_audioFile != null) {
+          uploadCount++;
+          await Provider.of<MultiPartUploadProvider>(context, listen: false)
+              .uploadFile(_audioFile, MimeMediaType.audio, _caseModel, 'audio')
+              .then((isImageSuccess) async {
+            resultCount++;
+          });
+        }
+        if (_videoFile != null) {
+          uploadCount++;
+          await Provider.of<MultiPartUploadProvider>(context, listen: false)
+              .uploadFile(_videoFile, MimeMediaType.video, _caseModel, 'video')
+              .then((isImageSuccess) async {
+            resultCount++;
+          });
+        }
+        if (_pdfFile1 != null) {
+          uploadCount++;
+          await Provider.of<MultiPartUploadProvider>(context, listen: false)
+              .uploadFile(_pdfFile1, MimeMediaType.pdf, _caseModel, 'pdf1')
+              .then((isPDF1Success) {
+            resultCount++;
+          });
+        }
+        if (_pdfFile2 != null) {
+          uploadCount++;
+          await Provider.of<MultiPartUploadProvider>(context, listen: false)
+              .uploadFile(_pdfFile2, MimeMediaType.pdf, _caseModel, 'pdf2')
+              .then((isPDF2Success) {
+            resultCount++;
+          });
+        }
+        if (_pdfFile3 != null) {
+          uploadCount++;
+          await Provider.of<MultiPartUploadProvider>(context, listen: false)
+              .uploadFile(_pdfFile3, MimeMediaType.pdf, _caseModel, 'pdf3')
+              .then((isPDF3Success) {
+            resultCount++;
+          });
+        }
+        if (_documentFile != null) {
+          uploadCount++;
+          await Provider.of<MultiPartUploadProvider>(context, listen: false)
+              .uploadFile(
+              _documentFile, MimeMediaType.excel, _caseModel, 'excel')
+              .then((isPDF3Success) {
+            resultCount++;
+          });
+        }
+        if (_signFile != null) {
+          uploadCount++;
+          await Provider.of<MultiPartUploadProvider>(context, listen: false)
+              .uploadFile(_signFile, MimeMediaType.excel, _caseModel, 'sign')
+              .then((isPDF3Success) {
+            resultCount++;
+          });
+        }
 
-        await Provider.of<ClaimProvider>(context, listen: false)
-            .submitReport(_caseModel)
-            .then((isSuccess) {
-          if (isSuccess) {
-            Provider.of<ClaimProvider>(SizeConfig.cxt, listen: false)
-                .getCaseList(true);
-            showSuccessToast('Cases Details submitted successfully');
-          } else {
-            showErrorToast('Oops, Something went wrong. Please try later');
-          }
-        });
+        if (resultCount == uploadCount) {
+          await Provider.of<ClaimProvider>(context, listen: false)
+              .submitReport(_caseModel)
+              .then((isSuccess) {
+            if (isSuccess) {
+              Navigator.pop(context);
+              Provider.of<ClaimProvider>(SizeConfig.cxt, listen: false)
+                  .getCaseList(true);
+              showSuccessToast('Cases Details submitted successfully');
+            } else {
+              showErrorToast('Oops, Something went wrong. Please try later');
+            }
+          });
+        }
       }
     });
   }
+
+  void _launchURL(String url) async =>
+      await canLaunch(Uri.encodeFull(url))
+          ? await launch(Uri.encodeFull(url))
+          : throw 'Could not launch $url';
 
   @override
   Widget build(BuildContext context) {
@@ -270,83 +428,91 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
             children: [
               Card(
                   child: ListTile(
-                title: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+                    title: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(
+                              height: 5,
+                            ),
+                            Text(
+                              'Policy No. : ',
+                              style: TextStyle(
+                                  color: Colors.grey, fontSize: 15),
+                            ),
+                            Text(
+                              '${_caseModel.policyNumber}',
+                              style: TextStyle(
+                                  color: Colors.black, fontSize: 15),
+                            ),
+                          ],
+                        ),
                         SizedBox(
                           height: 5,
                         ),
-                        Text(
-                          'Policy No. : ',
-                          style: TextStyle(color: Colors.grey, fontSize: 15),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('SumAssured : ',
+                                style: TextStyle(
+                                    color: Colors.grey, fontSize: 14)),
+                            Text('${formatCurrency.format(
+                                _caseModel.sumAssured)}',
+                                style:
+                                TextStyle(color: Colors.black, fontSize: 14)),
+                          ],
                         ),
-                        Text(
-                          '${_caseModel.policyNumber}',
-                          style: TextStyle(color: Colors.black, fontSize: 15),
+                        SizedBox(
+                          height: 5,
+                        ),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('IntimationType : ',
+                                style: TextStyle(
+                                    color: Colors.grey, fontSize: 14)),
+                            Text('${_caseModel.intimationType}',
+                                style:
+                                TextStyle(color: Colors.black, fontSize: 14)),
+                          ],
+                        ),
+                        SizedBox(
+                          height: 5,
+                        ),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('InvestigationType : ',
+                                style: TextStyle(
+                                    color: Colors.grey, fontSize: 14)),
+                            Text('${_caseModel.investigation
+                                .investigationType}',
+                                style:
+                                TextStyle(color: Colors.black, fontSize: 14)),
+                          ],
+                        ),
+                        SizedBox(
+                          height: 5,
+                        ),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Status : ',
+                                style: TextStyle(
+                                    color: Colors.grey, fontSize: 14)),
+                            Text('${_caseModel.caseStatus}',
+                                style:
+                                TextStyle(color: Colors.black, fontSize: 14)),
+                          ],
+                        ),
+                        SizedBox(
+                          height: 5,
                         ),
                       ],
                     ),
-                    SizedBox(
-                      height: 5,
-                    ),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('SumAssured : ',
-                            style: TextStyle(color: Colors.grey, fontSize: 14)),
-                        Text('${formatCurrency.format(_caseModel.sumAssured)}',
-                            style:
-                                TextStyle(color: Colors.black, fontSize: 14)),
-                      ],
-                    ),
-                    SizedBox(
-                      height: 5,
-                    ),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('IntimationType : ',
-                            style: TextStyle(color: Colors.grey, fontSize: 14)),
-                        Text('${_caseModel.intimationType}',
-                            style:
-                                TextStyle(color: Colors.black, fontSize: 14)),
-                      ],
-                    ),
-                    SizedBox(
-                      height: 5,
-                    ),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('InvestigationType : ',
-                            style: TextStyle(color: Colors.grey, fontSize: 14)),
-                        Text('${_caseModel.investigation.investigationType}',
-                            style:
-                                TextStyle(color: Colors.black, fontSize: 14)),
-                      ],
-                    ),
-                    SizedBox(
-                      height: 5,
-                    ),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Status : ',
-                            style: TextStyle(color: Colors.grey, fontSize: 14)),
-                        Text('${_caseModel.caseStatus}',
-                            style:
-                                TextStyle(color: Colors.black, fontSize: 14)),
-                      ],
-                    ),
-                    SizedBox(
-                      height: 5,
-                    ),
-                  ],
-                ),
-              )),
+                  )),
               Card(
                 child: ListTile(
                   title: Row(
@@ -373,10 +539,10 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                         children: [
                           Text('Insured DOB : ',
                               style:
-                                  TextStyle(color: Colors.grey, fontSize: 14)),
+                              TextStyle(color: Colors.grey, fontSize: 14)),
                           Text('${dateFormatter.format(_caseModel.insuredDob)}',
                               style:
-                                  TextStyle(color: Colors.black, fontSize: 14)),
+                              TextStyle(color: Colors.black, fontSize: 14)),
                         ],
                       ),
                       SizedBox(
@@ -387,10 +553,10 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                         children: [
                           Text('Insured DOD : ',
                               style:
-                                  TextStyle(color: Colors.grey, fontSize: 14)),
+                              TextStyle(color: Colors.grey, fontSize: 14)),
                           Text('${dateFormatter.format(_caseModel.insuredDod)}',
                               style:
-                                  TextStyle(color: Colors.black, fontSize: 14)),
+                              TextStyle(color: Colors.black, fontSize: 14)),
                         ],
                       ),
                       SizedBox(
@@ -401,7 +567,7 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                         children: [
                           Text('Insured Address : ',
                               style:
-                                  TextStyle(color: Colors.grey, fontSize: 14)),
+                              TextStyle(color: Colors.grey, fontSize: 14)),
                           Flexible(
                             child: Text('${_caseModel.insuredAddress.trim()}',
                                 style: TextStyle(
@@ -446,10 +612,10 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                         children: [
                           Text('Nominee Contact No. : ',
                               style:
-                                  TextStyle(color: Colors.grey, fontSize: 14)),
+                              TextStyle(color: Colors.grey, fontSize: 14)),
                           Text('${_caseModel.nomineeContactNumber}',
                               style:
-                                  TextStyle(color: Colors.black, fontSize: 14)),
+                              TextStyle(color: Colors.black, fontSize: 14)),
                         ],
                       ),
                       SizedBox(
@@ -460,7 +626,7 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                         children: [
                           Text('Nominee Address : ',
                               style:
-                                  TextStyle(color: Colors.grey, fontSize: 14)),
+                              TextStyle(color: Colors.grey, fontSize: 14)),
                           Flexible(
                             child: Text(
                                 '${_caseModel.nomineeAddress.trimRight()}',
@@ -505,10 +671,10 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                         children: [
                           Text('State : ',
                               style:
-                                  TextStyle(color: Colors.grey, fontSize: 14)),
+                              TextStyle(color: Colors.grey, fontSize: 14)),
                           Text('${_caseModel.location.state}',
                               style:
-                                  TextStyle(color: Colors.black, fontSize: 14)),
+                              TextStyle(color: Colors.black, fontSize: 14)),
                         ],
                       ),
                       SizedBox(
@@ -518,10 +684,10 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                         children: [
                           Text('Zone : ',
                               style:
-                                  TextStyle(color: Colors.grey, fontSize: 14)),
+                              TextStyle(color: Colors.grey, fontSize: 14)),
                           Text('${_caseModel.location.zone.trim()}',
                               style:
-                                  TextStyle(color: Colors.black, fontSize: 14)),
+                              TextStyle(color: Colors.black, fontSize: 14)),
                         ],
                       ),
                       SizedBox(
@@ -540,7 +706,8 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                         'Description : ',
                         style: TextStyle(color: Colors.grey, fontSize: 15),
                       ),
-                      _buildTextField(),
+                      _buildTextField(
+                          "Enter description here...", descTextController),
                     ],
                   ),
                 ),
@@ -549,13 +716,54 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
               _buildAudioBody(),
               _buildPDFBody(),
               _buildClaimFormatBody(),
+              _caseModel.remarks.isEmpty || _caseModel.remarks == null
+                  ? Container()
+                  : Card(
+                child: ListTile(
+                  title: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Supervisor Remarks : ',
+                        style:
+                        TextStyle(color: Colors.grey, fontSize: 15),
+                      ),
+                      SizedBox(
+                        height: 5,
+                      ),
+                      Text(_caseModel.remarks,
+                          style: TextStyle(
+                              color: Colors.black, fontSize: 15)),
+                    ],
+                  ),
+                ),
+              ),
+              Card(
+                child: ListTile(
+                  title: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Remarks : ',
+                        style: TextStyle(color: Colors.grey, fontSize: 15),
+                      ),
+                      _buildTextField(
+                          "Enter remarks here...", remarksTextController),
+                    ],
+                  ),
+                ),
+              ),
               _buildSignatureBody(),
               Padding(
                 padding: const EdgeInsets.all(15.0),
                 child: SizedBox(
                   width: double.maxFinite,
                   child: CupertinoButton(
-                    color: Theme.of(context).primaryColor,
+                    color: isNotEditable
+                        ? Colors.grey
+                        : Theme
+                        .of(context)
+                        .primaryColor,
                     child: Text(
                       'Submit Report',
                       style: TextStyle(color: Colors.white),
@@ -591,9 +799,13 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
               height: 15,
             ),
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              mainAxisAlignment: isNotEditable
+                  ? MainAxisAlignment.start
+                  : MainAxisAlignment.spaceEvenly,
               children: [
-                FlatButton(
+                isNotEditable
+                    ? SizedBox()
+                    : FlatButton(
                   onPressed: () {
                     onStopAudio();
                     switch (_currentStatus) {
@@ -625,20 +837,22 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                   },
                   child: _currentStatus == RecordingStatus.Recording
                       ? Column(
-                          children: [
-                            Icon(Icons.pause),
-                            Text('Pause'),
-                          ],
-                        )
+                    children: [
+                      Icon(Icons.pause),
+                      Text('Pause'),
+                    ],
+                  )
                       : Column(
-                          children: [
-                            Icon(Icons.record_voice_over),
-                            Text('Record'),
-                          ],
-                        ),
+                    children: [
+                      Icon(Icons.record_voice_over),
+                      Text('Record'),
+                    ],
+                  ),
                   color: primaryColor.withOpacity(0.5),
                 ),
-                FlatButton(
+                isNotEditable
+                    ? Container()
+                    : FlatButton(
                   onPressed: () {
                     if (_currentStatus == RecordingStatus.Recording) {
                       _stopAudioRecording();
@@ -655,7 +869,15 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                   ),
                   color: primaryColor.withOpacity(0.5),
                 ),
-                FlatButton(
+                audioPlayerState == AudioPlayerState.PLAYING
+                    ? FlatButton(
+                  onPressed: onStopAudio,
+                  child: Column(
+                    children: [Icon(Icons.stop), Text('Stop')],
+                  ),
+                  color: primaryColor.withOpacity(0.5),
+                )
+                    : FlatButton(
                   onPressed: onPlayAudio,
                   child: Column(
                     children: [Icon(Icons.play_arrow), Text('Play')],
@@ -682,9 +904,37 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
             SizedBox(
               height: 15,
             ),
-            Text(
-              'PDF Attachments : ',
-              style: TextStyle(color: Colors.black, fontSize: 15),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'PDF Attachments : ',
+                  style: TextStyle(color: Colors.black, fontSize: 15),
+                ),
+                _pdfFile1 != null || _pdfFile2 != null || _pdfFile3 != null
+                    ? InkWell(
+                  onTap: () {
+                    setState(() {
+                      _pdfFile1 = null;
+                      _pdfFile2 = null;
+                      _pdfFile3 = null;
+                      //
+                      _pdfFileName1 = '';
+                      _pdfFileName2 = '';
+                      _pdfFileName3 = '';
+                      //
+                      pdfName1TextController.text = "";
+                      pdfName2TextController.text = "";
+                      pdfName3TextController.text = "";
+                    });
+                  },
+                  child: Icon(
+                    Icons.delete,
+                    color: Colors.red,
+                  ),
+                )
+                    : Container()
+              ],
             ),
             SizedBox(
               height: 15,
@@ -694,13 +944,32 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                 Flexible(
                   child: TextField(
                     controller: pdfName1TextController,
-                    enabled: false,
+                    enabled: true,
+                    readOnly: true,
                     maxLines: 1,
-                    style: Theme.of(context).textTheme.headline3,
+                    style: Theme
+                        .of(context)
+                        .textTheme
+                        .headline3,
                     decoration: InputDecoration(
-                      hintText: "Select PDF 1",
-                      filled: false,
-                    ),
+                        hintText: "Select PDF 1",
+                        filled: false,
+                        suffixIcon: _pdfFile1 != null
+                            ? InkWell(
+                          onTap: () {
+                            setState(() {
+                              _pdfFile1 = null;
+                              _pdfFileName1 = '';
+                              //
+                              pdfName1TextController.text = "";
+                            });
+                          },
+                          child: Icon(
+                            Icons.delete,
+                            color: Colors.red,
+                          ),
+                        )
+                            : null),
                   ),
                 ),
                 SizedBox(
@@ -708,11 +977,18 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                 ),
                 ElevatedButton(
                   onPressed: () async {
+                    if (isNotEditable) {
+                      if (_caseModel.pdf1FilePath != null) {
+                        Get.toNamed(PDFViewerCachedFromUrl.routeName,
+                            arguments: {"url": _caseModel.pdf1FilePath});
+                      }
+                      return;
+                    }
                     FilePickerResult result = await FilePicker.platform
                         .pickFiles(
-                            type: FileType.custom,
-                            allowedExtensions: ['pdf'],
-                            allowCompression: true);
+                        type: FileType.custom,
+                        allowedExtensions: ['pdf'],
+                        allowCompression: true);
                     if (result != null) {
                       setState(() {
                         PlatformFile platformFile = result.files.first;
@@ -729,7 +1005,11 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                       // User canceled the picker
                     }
                   },
-                  child: Text('Select'),
+                  child: Text(
+                      isNotEditable && _caseModel.pdf1FilePath != null &&
+                          _caseModel.pdf1FilePath.isNotEmpty
+                          ? 'View'
+                          : 'Select'),
                 )
               ],
             ),
@@ -741,13 +1021,32 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                 Flexible(
                   child: TextField(
                     controller: pdfName2TextController,
-                    enabled: false,
+                    enabled: true,
+                    readOnly: true,
                     maxLines: 1,
-                    style: Theme.of(context).textTheme.headline3,
+                    style: Theme
+                        .of(context)
+                        .textTheme
+                        .headline3,
                     decoration: InputDecoration(
-                      hintText: "Select PDF 2",
-                      filled: false,
-                    ),
+                        hintText: "Select PDF 2",
+                        filled: false,
+                        suffixIcon: _pdfFile2 != null
+                            ? InkWell(
+                          onTap: () {
+                            setState(() {
+                              _pdfFile2 = null;
+                              _pdfFileName2 = '';
+                              //
+                              pdfName2TextController.text = "";
+                            });
+                          },
+                          child: Icon(
+                            Icons.delete,
+                            color: Colors.red,
+                          ),
+                        )
+                            : null),
                   ),
                 ),
                 SizedBox(
@@ -755,11 +1054,18 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                 ),
                 ElevatedButton(
                   onPressed: () async {
+                    if (isNotEditable) {
+                      if (_caseModel.pdf2FilePath != null) {
+                        Get.toNamed(PDFViewerCachedFromUrl.routeName,
+                            arguments: {"url": _caseModel.pdf2FilePath});
+                      }
+                      return;
+                    }
                     FilePickerResult result = await FilePicker.platform
                         .pickFiles(
-                            type: FileType.custom,
-                            allowedExtensions: ['pdf'],
-                            allowCompression: true);
+                        type: FileType.custom,
+                        allowedExtensions: ['pdf'],
+                        allowCompression: true);
                     if (result != null) {
                       setState(() {
                         PlatformFile platformFile = result.files.first;
@@ -776,7 +1082,10 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                       // User canceled the picker
                     }
                   },
-                  child: Text('Select'),
+                  child: Text(isNotEditable && _caseModel.pdf2FilePath != null &&
+                      _caseModel.pdf2FilePath.isNotEmpty
+                      ? 'View'
+                      : 'Select'),
                 )
               ],
             ),
@@ -788,13 +1097,32 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                 Flexible(
                   child: TextField(
                     controller: pdfName3TextController,
-                    enabled: false,
+                    enabled: true,
+                    readOnly: true,
                     maxLines: 1,
-                    style: Theme.of(context).textTheme.headline3,
+                    style: Theme
+                        .of(context)
+                        .textTheme
+                        .headline3,
                     decoration: InputDecoration(
-                      hintText: "Select PDF 3",
-                      filled: false,
-                    ),
+                        hintText: "Select PDF 3",
+                        filled: false,
+                        suffixIcon: _pdfFile3 != null
+                            ? InkWell(
+                          onTap: () {
+                            setState(() {
+                              _pdfFile3 = null;
+                              _pdfFileName3 = '';
+                              //
+                              pdfName3TextController.text = "";
+                            });
+                          },
+                          child: Icon(
+                            Icons.delete,
+                            color: Colors.red,
+                          ),
+                        )
+                            : null),
                   ),
                 ),
                 SizedBox(
@@ -802,11 +1130,18 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                 ),
                 ElevatedButton(
                   onPressed: () async {
+                    if (isNotEditable) {
+                      if (_caseModel.pdf3FilePath != null) {
+                        Get.toNamed(PDFViewerCachedFromUrl.routeName,
+                            arguments: {"url": _caseModel.pdf3FilePath});
+                      }
+                      return;
+                    }
                     FilePickerResult result = await FilePicker.platform
                         .pickFiles(
-                            type: FileType.custom,
-                            allowedExtensions: ['pdf'],
-                            allowCompression: true);
+                        type: FileType.custom,
+                        allowedExtensions: ['pdf'],
+                        allowCompression: true);
 
                     if (result != null) {
                       setState(() {
@@ -824,7 +1159,10 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                       // User canceled the picker
                     }
                   },
-                  child: Text('Select'),
+                  child: Text(isNotEditable && _caseModel.pdf3FilePath != null &&
+                      _caseModel.pdf3FilePath.isNotEmpty
+                      ? 'View'
+                      :'Select'),
                 )
               ],
             ),
@@ -844,9 +1182,30 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
         children: [
           SizedBox(
             width: SizeConfig.screenWidth,
-            child: Text(
-              'UPLOAD IMAGE',
-              style: Theme.of(context).textTheme.bodyText1,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'UPLOAD IMAGE',
+                  style: Theme
+                      .of(context)
+                      .textTheme
+                      .bodyText1,
+                ),
+                _imageFile != null
+                    ? InkWell(
+                  onTap: () {
+                    setState(() {
+                      _imageFile = null;
+                    });
+                  },
+                  child: Icon(
+                    Icons.delete,
+                    color: Colors.red,
+                  ),
+                )
+                    : Container()
+              ],
             ),
           ),
           SizedBox(
@@ -856,6 +1215,14 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
             children: [
               InkWell(
                 onTap: () {
+                  if (isNotEditable) {
+                    if (_caseModel.image != null && _caseModel.image.isNotEmpty) {
+                      Get.toNamed(FullImageViewScreen.routeName, arguments: {
+                        'IMAGE': _caseModel.image,
+                      });
+                    }
+                    return;
+                  }
                   imagePickerDialog(() async {
                     //camera
                     await getImageFile(ImageSource.camera).then((value) {
@@ -876,32 +1243,41 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                     });
                   });
                 },
-                child: _imageFile == null
+                child: _caseModel.image != null && _caseModel.image.isNotEmpty
+                    ? SizedBox(
+                  height: SizeConfig.screenHeight * .3,
+                  width: SizeConfig.screenWidth,
+                  child: CachedNetworkImage(
+                    imageUrl: _caseModel.image,
+                    fit: BoxFit.cover,
+                  ),
+                )
+                    : _imageFile == null
                     ? Stack(alignment: Alignment.center, children: [
-                        Container(
-                          height: SizeConfig.screenHeight * .3,
-                          decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey)),
-                        ),
-                        SizedBox(
-                          height: 80,
-                          width: 80,
-                          child: Image.asset(
-                            'assets/images/ic_image_upload_placeholder.png',
-                          ),
-                        ),
-                        Positioned(
-                            top: (SizeConfig.screenHeight * .3) / 2 + 60,
-                            child: Text("Upload Image"))
-                      ])
+                  Container(
+                    height: SizeConfig.screenHeight * .3,
+                    decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey)),
+                  ),
+                  SizedBox(
+                    height: 80,
+                    width: 80,
+                    child: Image.asset(
+                      'assets/images/ic_image_upload_placeholder.png',
+                    ),
+                  ),
+                  Positioned(
+                      top: (SizeConfig.screenHeight * .3) / 2 + 60,
+                      child: Text("Upload Image"))
+                ])
                     : SizedBox(
-                        height: SizeConfig.screenHeight * .3,
-                        width: SizeConfig.screenWidth,
-                        child: Image.file(
-                          _imageFile,
-                          fit: BoxFit.cover,
-                        ),
-                      ),
+                  height: SizeConfig.screenHeight * .3,
+                  width: SizeConfig.screenWidth,
+                  child: Image.file(
+                    _imageFile,
+                    fit: BoxFit.cover,
+                  ),
+                ),
               ),
             ],
           ),
@@ -910,9 +1286,30 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
           ),
           SizedBox(
             width: SizeConfig.screenWidth,
-            child: Text(
-              'UPLOAD VIDEO (MAX 5 MIN)',
-              style: Theme.of(context).textTheme.bodyText1,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'UPLOAD VIDEO (MAX 5 MIN)',
+                  style: Theme
+                      .of(context)
+                      .textTheme
+                      .bodyText1,
+                ),
+                _videoFile != null
+                    ? InkWell(
+                  onTap: () {
+                    setState(() {
+                      _videoFile = null;
+                    });
+                  },
+                  child: Icon(
+                    Icons.delete,
+                    color: Colors.red,
+                  ),
+                )
+                    : Container()
+              ],
             ),
           ),
           SizedBox(
@@ -922,6 +1319,9 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
             children: [
               InkWell(
                 onTap: () {
+                  if (isNotEditable) {
+                    return;
+                  }
                   videoPickerDialog(() async {
                     //camera
                     await getVideoFile(ImageSource.camera).then((file) async {
@@ -954,48 +1354,82 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                     });
                   });
                 },
-                child: _videoFile == null
-                    ? Stack(alignment: Alignment.center, children: [
-                        Container(
-                          height: SizeConfig.screenHeight * .3,
-                          decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey)),
-                        ),
-                        SizedBox(
-                          height: 80,
-                          width: 80,
-                          child: Image.asset(
-                            'assets/images/ic_video_upload_placeholder.png',
-                          ),
-                        ),
-                        Positioned(
-                            top: (SizeConfig.screenHeight * .3) / 2 + 60,
-                            child: Text("Upload Video"))
-                      ])
-                    : SizedBox(
-                        height: SizeConfig.screenHeight * .3,
-                        width: SizeConfig.screenWidth,
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            Image.memory(
-                              _thumbnail,
-                              fit: BoxFit.fill,
-                            ),
-                            InkWell(
-                              child: Icon(
-                                Icons.play_circle_filled_sharp,
-                                color: Theme.of(context).primaryColor,
-                                size: 70,
-                              ),
-                              onTap: () {
-                                Get.toNamed(VideoPlayerScreen.routeName,
-                                    arguments: {'file': _videoFile});
-                              },
-                            ),
-                          ],
-                        ),
+                child: videoThumbnailPath != null &&
+                    videoThumbnailPath.isNotEmpty
+                    ? SizedBox(
+                  height: SizeConfig.screenHeight * .3,
+                  width: SizeConfig.screenWidth,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Image.file(
+                        io.File(videoThumbnailPath),
+                        fit: BoxFit.fill,
                       ),
+                      InkWell(
+                        child: Icon(
+                          Icons.play_circle_filled_sharp,
+                          color: Theme
+                              .of(context)
+                              .primaryColor,
+                          size: 70,
+                        ),
+                        onTap: () {
+                          Get.toNamed(VideoPlayerScreen.routeName,
+                              arguments: {
+                                'file': _videoFile,
+                                'videoURL': Uri.encodeFull(
+                                    _caseModel.videoFilePath)
+                              });
+                        },
+                      ),
+                    ],
+                  ),
+                )
+                    : _videoFile == null
+                    ? Stack(alignment: Alignment.center, children: [
+                  Container(
+                    height: SizeConfig.screenHeight * .3,
+                    decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey)),
+                  ),
+                  SizedBox(
+                    height: 80,
+                    width: 80,
+                    child: Image.asset(
+                      'assets/images/ic_video_upload_placeholder.png',
+                    ),
+                  ),
+                  Positioned(
+                      top: (SizeConfig.screenHeight * .3) / 2 + 60,
+                      child: Text("Upload Video"))
+                ])
+                    : SizedBox(
+                  height: SizeConfig.screenHeight * .3,
+                  width: SizeConfig.screenWidth,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Image.memory(
+                        _thumbnail,
+                        fit: BoxFit.fill,
+                      ),
+                      InkWell(
+                        child: Icon(
+                          Icons.play_circle_filled_sharp,
+                          color: Theme
+                              .of(context)
+                              .primaryColor,
+                          size: 70,
+                        ),
+                        onTap: () {
+                          Get.toNamed(VideoPlayerScreen.routeName,
+                              arguments: {'file': _videoFile});
+                        },
+                      ),
+                    ],
+                  ),
+                ),
               )
             ],
           ),
@@ -1004,23 +1438,24 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
     );
   }
 
-  Widget _buildTextField() {
+  Widget _buildTextField(String hint, TextEditingController controller) {
     final maxLines = 5;
-
     return Container(
       height: maxLines * 24.0,
       child: TextField(
-        focusNode: _descFocusNode,
-        controller: descTextController,
+        //  focusNode: _descFocusNode,
+        enabled: !isNotEditable,
+        controller: controller,
         maxLines: maxLines,
-        style: Theme.of(context).textTheme.headline3,
+        style: Theme
+            .of(context)
+            .textTheme
+            .headline3,
         decoration: InputDecoration(
-          hintText: "Enter description here...",
+          hintText: hint,
           filled: false,
         ),
-        onChanged: (text) {
-          descText = text;
-        },
+        onChanged: (text) {},
       ),
     );
   }
@@ -1036,6 +1471,9 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
   }
 
   _showSignaturePopup() {
+    if (isNotEditable) {
+      return;
+    }
     showDialog(
         context: context,
         builder: (BuildContext context) {
@@ -1076,6 +1514,9 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                           Navigator.pop(context);
                           if (_controller.isNotEmpty) {
                             var data = await _controller.toPngBytes();
+                            setState(() {
+                              _signFile = io.File.fromRawPath(data);
+                            });
                             // Navigator.of(context).push(
                             //   MaterialPageRoute(
                             //     builder: (BuildContext context) {
@@ -1119,19 +1560,65 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
             SizedBox(
               height: 15,
             ),
-            Text(
-              _caseModel.intimationType == 'CDP' ? 'Document Pickup Form : ' : 'PIV/PIRV/LIVE Form : ',
-              style: TextStyle(color: Colors.black, fontSize: 15),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  _caseModel.intimationType == 'CDP'
+                      ? 'Document Pickup Form : '
+                      : 'PIV/PIRV/LIVE Form : ',
+                  style: TextStyle(color: Colors.black, fontSize: 15),
+                ),
+                _documentFile != null
+                    ? InkWell(
+                  onTap: () {
+                    setState(() {
+                      _documentFile = null;
+                    });
+                  },
+                  child: Icon(
+                    Icons.delete,
+                    color: Colors.red,
+                  ),
+                )
+                    : SizedBox(),
+              ],
             ),
             InkWell(
               onTap: () async {
-               if (_caseModel.intimationType == 'CDP') {
-                 final ByteData bytes = await rootBundle.load('assets/images/ClaimForm.xlsx');
-                 await Share.file('Doc', 'ClaimForm.xlsx', bytes.buffer.asUint8List(), 'application/vnd.ms-excel', text: 'Claim Form format for document collection');
-               } else {
-                 final ByteData bytes = await rootBundle.load('assets/images/PIVReport.xls');
-                 await Share.file('Doc', 'PIVReport.xls', bytes.buffer.asUint8List(), 'application/vnd.ms-excel', text: 'PIV PIRV Report Format');
-               }
+                if (isNotEditable) {
+                  return;
+                }
+                if (_caseModel.intimationType == 'CDP') {
+                  final ByteData bytes =
+                  await rootBundle.load('assets/images/ClaimForm.xlsx');
+                  if (io.Platform.isAndroid) {
+                    String dir = await ExtStorage
+                        .getExternalStoragePublicDirectory(
+                        ExtStorage.DIRECTORY_DOWNLOADS);
+                    io.File file = new io.File('$dir/ClaimForm.xlsx');
+                    await file.writeAsBytes(bytes.buffer.asUint8List()).then((value){
+                      showSuccessToast('Saved to downloads');
+                    });
+                  } else {
+                    await Share.file('Doc', 'ClaimForm.xlsx',
+                        bytes.buffer.asUint8List(), 'application/vnd.ms-excel',
+                        text: 'Claim Form format for document collection');
+                  }
+                } else {
+                  final ByteData bytes = await rootBundle.load('assets/images/PIVReport.xls');
+                  if (io.Platform.isAndroid) {
+                    String dir = await ExtStorage.getExternalStoragePublicDirectory(ExtStorage.DIRECTORY_DOWNLOADS);
+                    io.File file = new io.File('$dir/PIVReport.xls');
+                    await file.writeAsBytes(bytes.buffer.asUint8List()).then((value){
+                      showSuccessToast('Saved to downloads');
+                    });
+                  } else {
+                    await Share.file('Doc', 'PIVReport.xls',
+                        bytes.buffer.asUint8List(), 'application/vnd.ms-excel',
+                        text: 'PIV PIRV Report Format');
+                  }
+                }
               },
               child: Text(
                 '(Sample Download)',
@@ -1145,10 +1632,13 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
               children: [
                 Flexible(
                   child: TextField(
-                    controller: pdfName1TextController,
+                    controller: documentTextController,
                     enabled: false,
                     maxLines: 1,
-                    style: Theme.of(context).textTheme.headline3,
+                    style: Theme
+                        .of(context)
+                        .textTheme
+                        .headline3,
                     decoration: InputDecoration(
                       hintText: "Select File",
                       filled: false,
@@ -1160,28 +1650,46 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                 ),
                 ElevatedButton(
                   onPressed: () async {
-                    FilePickerResult result = await FilePicker.platform
-                        .pickFiles(
-                           // type: FileType.custom,
-                           // allowedExtensions: ['xlsx, xls, csv'],
-                            allowCompression: true);
+                    if (isNotEditable) {
+                      if (_caseModel.excelFilepath != null &&
+                          _caseModel.excelFilepath.isNotEmpty) {
+                        showLoadingDialog(hint: "Downloading...");
+                        await Provider.of<ClaimProvider>(context, listen: false)
+                            .downloadFile(_caseModel.excelFilepath,
+                            'excel-${_caseModel.caseId}.xlsx').then((value) {
+                          Navigator.pop(context);
+                          showSuccessToast('File downloaded');
+                        });
+                      }
+                      return;
+                    }
+                    FilePickerResult result =
+                    await FilePicker.platform.pickFiles(
+                      // type: FileType.custom,
+                      // allowedExtensions: ['xlsx, xls, csv'],
+                        allowCompression: true);
                     if (result != null) {
                       setState(() {
                         PlatformFile platformFile = result.files.first;
-                        if (platformFile.extension == "xlsx" || platformFile.extension == "xls" || platformFile.extension == "csv") {
-                          _pdfFile1 = io.File(result.files.single.path);
-                          _pdfFileName1 = platformFile.name;
-                          pdfName1TextController.text = _pdfFileName1;
+                        if (platformFile.extension == "xlsx" ||
+                            platformFile.extension == "xls" ||
+                            platformFile.extension == "csv") {
+                          _documentFile = io.File(result.files.single.path);
+                          _documentFileName = platformFile.name;
+                          documentTextController.text = _documentFileName;
                         } else {
-                          Get.snackbar(
-                              'Alert', 'Please select excel or csv files only.');
+                          Get.snackbar('Alert',
+                              'Please select excel or csv files only.');
                         }
                       });
                     } else {
                       // User canceled the picker
                     }
                   },
-                  child: Text('Select'),
+                  child: Text(isNotEditable && _caseModel.excelFilepath != null &&
+                      _caseModel.excelFilepath.isNotEmpty
+                      ? 'Download'
+                      :'Select'),
                 )
               ],
             ),

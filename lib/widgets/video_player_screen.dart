@@ -23,71 +23,78 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
 
     if (arguments != null && arguments['file'] != null) {
       _controller = VideoPlayerController.file(arguments['file']);
+      _initializeVideoPlayerFuture = _controller.initialize();
+      _controller.setLooping(false);
+      _controller.play();
+    } else if (arguments != null && arguments['videoURL'] != null) {
+      _controller = VideoPlayerController.network(arguments['videoURL']);
+      _initializeVideoPlayerFuture = _controller.initialize().then((value) {
+        _controller.setLooping(false);
+        // Ensure the first frame is shown after the video is initialized, even before the play button has been pressed.
+        setState(() {});
+        _controller.play();
+      });
     }
-
-    if (arguments != null && arguments['videoURL'] != null) {
-      _controller = VideoPlayerController.network(arguments['videoURL'])
-        ..initialize().then((_) {
-          // Ensure the first frame is shown after the video is initialized, even before the play button has been pressed.
-          setState(() {});
-        });
-    }
-
-    // _controller = VideoPlayerController.network(
-    //   'https://flutter.github.io/assets-for-api-docs/assets/videos/butterfly.mp4',
-    // );
 
     // Initialize the controller and store the Future for later use.
-    _initializeVideoPlayerFuture = _controller.initialize();
 
     // Use the controller to loop the video.
-    _controller.setLooping(true);
-    _controller.play();
     super.initState();
   }
 
   @override
   void dispose() {
     // Ensure disposing of the VideoPlayerController to free up resources.
-    _controller.dispose();
     super.dispose();
+    _controller.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(),
-      body: FutureBuilder(
-        future: _initializeVideoPlayerFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.done) {
-            // If the VideoPlayerController has finished initialization, use
-            // the data it provides to limit the aspect ratio of the video.
-            return Center(
-              child: VideoPlayer(_controller),
-            );
-          } else {
-            // If the VideoPlayerController is still initializing, show a
-            // loading spinner.
-            return Center(child: CircularProgressIndicator());
-          }
-        },
-      ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.black87,
-        onPressed: () {
-          setState(() {
-            // If the video is playing, pause it.
-            if (_controller.value.isPlaying) {
-              _controller.pause();
+    return WillPopScope(
+      onWillPop: () async {
+        if (_controller.value.isPlaying) {
+          _controller.pause();
+        }
+        return Future.value(true);
+      },
+      child: Scaffold(
+        appBar: AppBar(),
+        body: FutureBuilder(
+          future: _initializeVideoPlayerFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.done) {
+              // If the VideoPlayerController has finished initialization, use
+              // the data it provides to limit the aspect ratio of the video.
+              return Center(
+                child: AspectRatio(
+                  aspectRatio: _controller.value.aspectRatio,
+                  child: VideoPlayer(_controller),
+                ),
+              );
             } else {
-              // If the video is paused, play it.
-              _controller.play();
+              // If the VideoPlayerController is still initializing, show a
+              // loading spinner.
+              return Center(child: CircularProgressIndicator());
             }
-          });
-        },
-        child: Icon(
-          _controller.value.isPlaying ? Icons.pause : Icons.play_arrow,
+          },
+        ),
+        floatingActionButton: FloatingActionButton(
+          backgroundColor: Colors.black87,
+          onPressed: () {
+            setState(() {
+              // If the video is playing, pause it.
+              if (_controller.value.isPlaying) {
+                _controller.pause();
+              } else {
+                // If the video is paused, play it.
+                _controller.play();
+              }
+            });
+          },
+          child: Icon(
+            _controller.value.isPlaying ? Icons.pause : Icons.play_arrow,
+          ),
         ),
       ),
     );

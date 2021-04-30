@@ -9,10 +9,13 @@ import 'package:claim_investigation/util/app_enum.dart';
 import 'package:claim_investigation/util/app_exception.dart';
 import 'package:claim_investigation/util/app_helper.dart';
 import 'package:claim_investigation/util/size_constants.dart';
+import 'package:ext_storage/ext_storage.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:connectivity/connectivity.dart';
 import 'package:dartz/dartz.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import '../main.dart';
 import 'package:http_parser/http_parser.dart' as http_parser;
@@ -182,25 +185,46 @@ class ApiClient {
     );
 
     request.fields['username'] = _pref.user.username;
-    request.fields['uploadType'] = 'image';
+    request.fields['uploadType'] = uploadType;
     request.fields['latitude'] = caseModel.latitude;
     request.fields['longitude'] = caseModel.longitude;
-    request.fields['caseid'] = caseModel.caseId.toString();
+    request.fields['caseId'] = caseModel.caseId.toString();
 
-    if (mimeType == MimeMediaType.image) {
-      request.files.add(
-        await http.MultipartFile.fromPath('uploadedFile', file.path),
-       // await http.MultipartFile.fromPath('uploadedFile', file.path,contentType: http_parser.MediaType('image', 'jpeg')),
-      );
-    } else if (mimeType == MimeMediaType.video) {
-      request.files.add(
-        await http.MultipartFile.fromPath('uploadedFile', file.path,
-            contentType: new http_parser.MediaType('video', 'mp4')),
-      );
+    if (file != null) {
+      if (mimeType == MimeMediaType.image) {
+        request.files.add(
+          await http.MultipartFile.fromPath('uploadedFile', file.path),
+          // await http.MultipartFile.fromPath('uploadedFile', file.path,contentType: http_parser.MediaType('image', 'jpeg')),
+        );
+      } else if (mimeType == MimeMediaType.video) {
+        request.files.add(
+          await http.MultipartFile.fromPath('uploadedFile', file.path),
+          //  await http.MultipartFile.fromPath('uploadedFile', file.path, contentType: new http_parser.MediaType('Video', 'mpeg')),
+        );
+      } else if (mimeType == MimeMediaType.pdf) {
+        request.files.add(
+          await http.MultipartFile.fromPath('uploadedFile', file.path,
+              contentType: new http_parser.MediaType('pdf', 'pdf')),
+        );
+      } else if (mimeType == MimeMediaType.audio) {
+        request.files.add(
+          await http.MultipartFile.fromPath('uploadedFile', file.path),
+          //  await http.MultipartFile.fromPath('uploadedFile', file.path, contentType: new http_parser.MediaType('Audio', 'mpeg')),
+        );
+      } else {
+        request.files.add(
+          await http.MultipartFile.fromPath('uploadedFile', file.path,
+              contentType: new http_parser.MediaType('excel', 'excel')),
+        );
+      }
     }
 
     request.headers.addAll(headers);
     request.persistentConnection = true;
+
+    final url = request.url;
+    debugPrint(' $_tagRequest  $url \n $headers');
+    debugPrint('$jsonEncode(${request.fields.toString()})');
 
     final res = await request.send().then((response) {
       return response;
@@ -213,10 +237,10 @@ class ApiClient {
 
   Future uploadProfileFiles(
       {@required String path,
-        Encoding encoding,
-        File file,
-        MimeMediaType mimeType,
-        UserModel userModel}) async {
+      Encoding encoding,
+      File file,
+      MimeMediaType mimeType,
+      UserModel userModel}) async {
     Map<String, String> headers = Map();
     headers[HttpHeaders.contentTypeHeader] = "application/json";
 
@@ -255,6 +279,12 @@ class ApiClient {
     request.headers.addAll(headers);
     request.persistentConnection = true;
 
+    final url = ApiConstant.API_BASE_URL + path;
+    debugPrint(' $_tagRequest  $url \n $headers');
+    debugPrint(file == null
+        ? '  $jsonEncode(${request.fields.toString()})'
+        : 'File upload');
+
     final res = await request.send().then((response) {
       return response;
     }).catchError((e) {
@@ -262,5 +292,18 @@ class ApiClient {
       return Left(AppException(e.toString()));
     });
     return res;
+  }
+
+  static var httpClient = new HttpClient();
+  Future<File> downloadFile(String url, String filename) async {
+    var request = await httpClient.getUrl(Uri.parse(url));
+    var response = await request.close();
+    var bytes = await consolidateHttpClientResponseBytes(response);
+    String dir = Platform.isAndroid ? await ExtStorage.getExternalStoragePublicDirectory(
+        ExtStorage.DIRECTORY_DOWNLOADS) : (await getApplicationDocumentsDirectory()).path;
+
+    File file = new File('$dir/$filename');
+    await file.writeAsBytes(bytes);
+    return file;
   }
 }

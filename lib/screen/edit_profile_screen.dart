@@ -63,6 +63,10 @@ class _EditProfileScreenState extends BaseState<EditProfileScreen> {
         setState(() {
           _isLoading = true;
         });
+        _userModel.username = _userNameTextController.text.trim();
+        _userModel.fullName = _fullNameTextController.text.trim();
+        _userModel.userEmail = _emailTextController.text.trim();
+        _userModel.mobileNumber = _phoneTextController.text.trim();
         await Provider.of<MultiPartUploadProvider>(
             context,
             listen: false)
@@ -74,6 +78,7 @@ class _EditProfileScreenState extends BaseState<EditProfileScreen> {
           if (success) {
             showSuccessToast('Profile updated successfully');
             pref.user = _userModel;
+            Provider.of<AuthProvider>(context,listen: false).isProfileUpdated = true;
           } else {
             showErrorToast('Oops, something went wrong. Please try later');
           }

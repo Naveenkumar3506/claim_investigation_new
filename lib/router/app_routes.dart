@@ -3,8 +3,10 @@ import 'package:claim_investigation/screen/case_list_screen.dart';
 import 'package:claim_investigation/screen/change_password_screen.dart';
 import 'package:claim_investigation/screen/edit_profile_screen.dart';
 import 'package:claim_investigation/screen/forgotpassword_screen.dart';
+import 'package:claim_investigation/screen/full_image_screen.dart';
 import 'package:claim_investigation/screen/home_screen.dart';
 import 'package:claim_investigation/screen/login_screen.dart';
+import 'package:claim_investigation/screen/pdfView_screen.dart';
 import 'package:claim_investigation/screen/profile_screen.dart';
 import 'package:claim_investigation/screen/tabbar_screen.dart';
 import 'package:claim_investigation/widgets/video_player_screen.dart';
@@ -68,6 +70,22 @@ class AppRouter {
           return MaterialPageRoute(
             builder: (_) => VideoPlayerScreen(),
             settings: settings,
+          );
+        }
+      case PDFViewerCachedFromUrl.routeName:
+        {
+          return MaterialPageRoute(
+            builder: (_) => PDFViewerCachedFromUrl(),
+            settings: settings,
+          );
+        }
+        break;
+      case FullImageViewScreen.routeName:
+        {
+          return MaterialPageRoute(
+            builder: (_) => FullImageViewScreen(),
+            settings: settings,
+            fullscreenDialog: true
           );
         }
         break;

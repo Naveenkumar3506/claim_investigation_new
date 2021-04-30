@@ -1,5 +1,5 @@
 
-enum MimeMediaType { image, video, pdf }
+enum MimeMediaType { image, video, pdf, excel, audio }
 
 class MimeTypeHelper {
   static MimeMediaType determineFromURL(String url) {

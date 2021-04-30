@@ -54,71 +54,75 @@ class _ProfileScreenState extends BaseState<ProfileScreen> {
           ),
         ],
       ),
-      body: ListView(
-        children: [
-          Container(
-            padding: EdgeInsetsDirectional.only(top: 15.0),
-            width: double.maxFinite,
-            height: appHelper.isTablet(context)
-                ? SizeConfig.screenWidth * 0.5
-                : SizeConfig.screenHeight * 0.32,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                CircleAvatar(
-                  backgroundColor: Colors.white,
-                  radius: SizeConfig.screenHeight * 0.07,
-                  backgroundImage: pref.user.userImage == null ||
-                      pref.user.userImage.isEmpty
-                      ? AssetImage('assets/images/ic_profile_placeholder.jpg')
-                      : CachedNetworkImageProvider(pref.user.userImage),
+      body: Consumer<AuthProvider>(
+          builder: (ctx, auth, _) {
+          return ListView(
+            children: [
+              Container(
+                padding: EdgeInsetsDirectional.only(top: 15.0),
+                width: double.maxFinite,
+                height: appHelper.isTablet(context)
+                    ? SizeConfig.screenWidth * 0.5
+                    : SizeConfig.screenHeight * 0.32,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    CircleAvatar(
+                      backgroundColor: Colors.white,
+                      radius: SizeConfig.screenHeight * 0.07,
+                      backgroundImage: pref.user.userImage == null ||
+                          pref.user.userImage.isEmpty
+                          ? AssetImage('assets/images/ic_profile_placeholder.jpg')
+                          : CachedNetworkImageProvider(pref.user.userImage),
+                    ),
+                    SizedBox(
+                      height: 15,
+                    ),
+                    Text(
+                      pref.user.username,
+                      style: Theme.of(context).textTheme.bodyText2,
+                    ),
+                    Text(
+                      pref.user.userEmail != null ? pref.user.userEmail : '',
+                      style: TextStyle(color: Colors.grey, fontSize: 13.0),
+                    ),
+                    SizedBox(
+                      height: 5,
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Get.toNamed(EditProfileScreen.routeName);
+                      },
+                      child: Text(
+                        'Edit Profile',
+                        style: TextStyle(color: primaryColor, fontSize: 13.0),
+                      ),
+                    ),
+                  ],
                 ),
-                SizedBox(
-                  height: 15,
+              ),
+              SizedBox(
+                height: 10,
+                child: Container(
+                  color: veryLightGrey,
                 ),
-                Text(
-                  pref.user.username,
-                  style: Theme.of(context).textTheme.bodyText2,
+              ),
+              ListTile(
+                leading: Icon(
+                  Icons.lock,
+                  color: primaryColor,
                 ),
-                Text(
-                  pref.user.userEmail != null ? pref.user.userEmail : '',
-                  style: TextStyle(color: Colors.grey, fontSize: 13.0),
+                title: Text(
+                  'Change password',
+                  style: TextStyle(color: Colors.black),
                 ),
-                SizedBox(
-                  height: 5,
-                ),
-                TextButton(
-                  onPressed: () {
-                    Get.toNamed(EditProfileScreen.routeName);
-                  },
-                  child: Text(
-                    'Edit Profile',
-                    style: TextStyle(color: primaryColor, fontSize: 13.0),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(
-            height: 10,
-            child: Container(
-              color: veryLightGrey,
-            ),
-          ),
-          ListTile(
-            leading: Icon(
-              Icons.lock,
-              color: primaryColor,
-            ),
-            title: Text(
-              'Change password',
-              style: TextStyle(color: Colors.black),
-            ),
-            onTap: () {
-              Get.toNamed(ChangePasswordScreen.routeName);
-            },
-          ),
-        ],
+                onTap: () {
+                  Get.toNamed(ChangePasswordScreen.routeName);
+                },
+              ),
+            ],
+          );
+        }
       ),
     );
   }

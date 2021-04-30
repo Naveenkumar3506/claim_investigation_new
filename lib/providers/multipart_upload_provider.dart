@@ -9,8 +9,8 @@ import 'package:flutter/material.dart';
 
 class MultiPartUploadProvider extends BaseProvider {
   //image upload
-  Future uploadFile(File file, MimeMediaType mimeType, CaseModel caseModel,
-      String uploadType) async {
+  Future<bool> uploadFile(File file, MimeMediaType mimeType,
+      CaseModel caseModel, String uploadType) async {
     try {
       final response = await super.apiClient.uploadFiles(
           path: ApiConstant.API_FILE_UPLOAD,
@@ -22,24 +22,18 @@ class MultiPartUploadProvider extends BaseProvider {
       final jsonResponse = json.decode(body);
       print(jsonResponse.toString());
       if (response.statusCode == 200) {
-        String body = await response.stream.bytesToString();
-        final jsonResponse = json.decode(body);
-        if (jsonResponse.containsKey('Success') &&
-            jsonResponse['Success'] == true) {
-          return jsonResponse['Data']['Url'];
+        if (jsonResponse.containsKey('data') &&
+            jsonResponse['data'] == "File uploaded successfully") {
+          return true;
         } else {
-          // if (jsonResponse.containsKey('Message')) {
-          //   return AppException(jsonResponse['Message']);
-          // } else {
-          //   return AppException(
-          //       'Oops, something went wrong. Please try again later.');
-          // }
+          return false;
         }
       } else {
-        return null;
+        return false;
       }
     } catch (e) {
       print(e);
+      return false;
     }
   }
 
@@ -47,7 +41,10 @@ class MultiPartUploadProvider extends BaseProvider {
       File file, MimeMediaType mimeType, UserModel userModel) async {
     try {
       final response = await super.apiClient.uploadProfileFiles(
-          path: ApiConstant.API_PROFILE_UPLOAD, file: file, mimeType: mimeType, userModel: userModel);
+          path: ApiConstant.API_PROFILE_UPLOAD,
+          file: file,
+          mimeType: mimeType,
+          userModel: userModel);
       String body = await response.stream.bytesToString();
       final jsonResponse = json.decode(body);
       debugPrint(jsonResponse.toString());

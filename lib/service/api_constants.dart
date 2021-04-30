@@ -16,6 +16,7 @@ class ApiConstant {
   static const API_GET_CASE_INTIMATION_LIST = 'getCaseIntimationList';
   static const API_GET_CDP_CASE_LIST = 'getCDPCaseList';
   static const API_GET_CLOSED_CASE_LIST = 'getCaseClosedList';
+  static const API_LOCATION_UPDATE = 'locationtrack';
 }
 
 class ApiParam {}

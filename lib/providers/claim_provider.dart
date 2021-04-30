@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:claim_investigation/base/base_provider.dart';
 import 'package:claim_investigation/models/case_model.dart';
 import 'package:claim_investigation/models/report_model.dart';
@@ -95,7 +97,7 @@ class ClaimProvider extends BaseProvider {
         listCases.addAll(arrayCases);
         caseListPageNumber += 1;
       } else {
-        showSuccessToast(isLoadMore ? 'you are done' : 'No Recipes');
+        showSuccessToast(isLoadMore ? 'you are done' : 'No Cases Found');
       }
     });
   }
@@ -111,7 +113,8 @@ class ClaimProvider extends BaseProvider {
           'longitude': caseModel.longitude,
           'latitude': caseModel.latitude,
           'capturedDate': DateFormat('yyyy-MM-dd').format(DateTime.now()),
-          'caseid': caseModel.caseId
+          'caseid': caseModel.caseId,
+          'remarks': caseModel.newRemarks
         },
         withAuth: false);
     hideLoadingIndicator();
@@ -125,7 +128,7 @@ class ClaimProvider extends BaseProvider {
     });
   }
 
-  Future getNewCaseList(bool isRefresh, String type) async {
+  Future<List<CaseModel>> getNewCaseList(bool isRefresh, String type) async {
     if (isRefresh) {
       caseListPageNumber = 1;
       listCases.clear();
@@ -163,9 +166,10 @@ class ClaimProvider extends BaseProvider {
     isLoading = false;
     isLoadMore = false;
 
-    response.fold((l) {
+    return response.fold((l) {
       AppLog.print('left----> ' + l.toString());
       showErrorToast(l.toString());
+      return listCases;
     }, (r) {
       AppLog.print('right----> ' + r.toString());
       final parsed = r.cast<Map<String, dynamic>>();
@@ -185,13 +189,36 @@ class ClaimProvider extends BaseProvider {
         listCases.addAll(arrayCases);
         caseListPageNumber += 1;
       } else {
-        showSuccessToast(isLoadMore ? 'you are done' : 'No Recipes');
+        showSuccessToast(isLoadMore ? 'you are done' : 'No Cases Found');
       }
+      return listCases;
     });
   }
 
   clearData() {
     listCases.clear();
     caseListPageNumber = 1;
+  }
+
+  Future<File> downloadFile(String url, String filename) async {
+   final file = await apiClient.downloadFile(url, filename);
+   return file;
+  }
+
+  Future updateLocation(String lat, String long) async {
+    final response = await super.apiClient.callWebService(
+        path: ApiConstant.API_LOCATION_UPDATE,
+        method: ApiMethod.POST,
+        body: {
+          "username": pref.user.username,
+          "latitude": caseListPageNumber,
+          "longitude": fetchDataSize
+        }, withAuth: false);
+
+    response.fold((l) {
+      AppLog.print('left----> ' + l.toString());
+    }, (r) {
+      AppLog.print('right----> ' + r.toString());
+    });
   }
 }

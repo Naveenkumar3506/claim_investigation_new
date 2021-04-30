@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 
 CaseModel caseModelFromJson(String str) => CaseModel.fromJson(json.decode(str));
@@ -36,6 +37,9 @@ class CaseModel {
     this.createdDate,
     this.updatedDate,
     this.updatedBy,
+    this.remarks,
+    this.image,
+    this.excelFilepath
   });
 
   int caseId;
@@ -66,6 +70,10 @@ class CaseModel {
   DateTime createdDate;
   DateTime updatedDate;
   String updatedBy;
+  String remarks;
+  String image;
+  String newRemarks;
+  String excelFilepath;
 
   factory CaseModel.fromJson(Map<String, dynamic> json) => CaseModel(
     caseId: json["caseId"],
@@ -96,6 +104,9 @@ class CaseModel {
     createdDate: DateTime.parse(json["createdDate"]),
     updatedDate: DateTime.parse(json["updatedDate"]),
     updatedBy: json["updatedBy"],
+    remarks: json["remarks"],
+    image: json["image"],
+    excelFilepath: json["excelFilepath"]
   );
 
   Map<String, dynamic> toJson() => {
@@ -127,6 +138,7 @@ class CaseModel {
     "createdDate": createdDate.toIso8601String(),
     "updatedDate": updatedDate.toIso8601String(),
     "updatedBy": updatedBy,
+    "remarks": remarks
   };
 }
 

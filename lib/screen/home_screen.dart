@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:claim_investigation/base/base_page.dart';
@@ -9,6 +10,7 @@ import 'package:claim_investigation/util/size_constants.dart';
 import 'package:claim_investigation/widgets/adaptive_widgets.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:modal_progress_hud/modal_progress_hud.dart';
 import 'package:provider/provider.dart';
@@ -24,6 +26,13 @@ class _HomeScreenState extends BaseState<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    StreamSubscription<Position> positionStream = Geolocator.getPositionStream(desiredAccuracy: LocationAccuracy.high).listen(
+            (Position position) {
+              if (position != null) {
+                Provider.of<ClaimProvider>(context, listen: false).updateLocation(position.latitude.toString(), position.longitude.toString());
+              }
+          print(position == null ? 'Unknown' : position.latitude.toString() + ', ' + position.longitude.toString());
+        });
   }
 
   itemView(String title, int count) {
@@ -78,6 +87,9 @@ class _HomeScreenState extends BaseState<HomeScreen> {
             .getNewCaseList(true, title)
             .then((value) {
           //hide dialog
+          if (value.isEmpty) {
+            Navigator.pop(context);
+          }
           Navigator.pop(context);
           Get.toNamed(CaseListScreen.routeName);
         });

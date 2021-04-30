@@ -58,5 +58,10 @@
 	<string>App needs microphone permission to record voice for case detail</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>App needs gallery permission to capture image for case detail</string>
+    <key>LSApplicationQueriesSchemes</key>
+    <array>
+        <string>https</string>
+        <string>http</string>
+    </array>
 </dict>
 </plist>

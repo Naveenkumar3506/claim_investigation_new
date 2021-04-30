@@ -9,6 +9,14 @@ import 'package:http/http.dart' as http;
 
 class AuthProvider extends BaseProvider {
   UserModel currentUser;
+  bool _isProfileUpdated = false;
+
+  bool get isProfileUpdated => _isProfileUpdated;
+
+  set isProfileUpdated(bool value) {
+    _isProfileUpdated = value;
+    notifyListeners();
+  }
 
   bool get isAuth {
     currentUser = pref.user;
