@@ -31,7 +31,7 @@ class _HomeScreenState extends BaseState<HomeScreen> {
               if (position != null) {
                 Provider.of<ClaimProvider>(context, listen: false).updateLocation(position.latitude.toString(), position.longitude.toString());
               }
-          print(position == null ? 'Unknown' : position.latitude.toString() + ', ' + position.longitude.toString());
+        //  print(position == null ? 'Unknown' : position.latitude.toString() + ', ' + position.longitude.toString());
         });
   }
 

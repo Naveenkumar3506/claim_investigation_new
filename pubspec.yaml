@@ -51,7 +51,7 @@ dependencies:
   file: ^5.2.1
   path_provider: ^1.6.27
   geolocator: ^6.2.0
-  signature: ^3.2.0
+  signature: ^3.2.1
   cached_network_image: ^2.3.2+1
   esys_flutter_share: ^1.0.2
   url_launcher: ^6.0.3
