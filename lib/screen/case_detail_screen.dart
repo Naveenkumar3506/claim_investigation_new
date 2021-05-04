@@ -372,7 +372,7 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
   Future<bool> uploadSign() async {
     if (_signFile != null) {
       return await Provider.of<MultiPartUploadProvider>(context, listen: false)
-          .uploadFile(_signFile, MimeMediaType.image, _caseModel, 'sign');
+          .uploadFile(_signFile, MimeMediaType.image, _caseModel, 'signature');
     } else {
       return Future.value(true);
     }
@@ -399,77 +399,93 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
           // uploadPDF1(),
           // uploadPDF2(),
           // uploadPDF3(),
-          uploadSign(),
+         // uploadSign(),
           // uploadDocument(),
           // uploadAudio(),
           // uploadVideo()
         ]);
 
-        // if (_imageFile != null) {
-        //   uploadCount++;
-        //   await Provider.of<MultiPartUploadProvider>(context, listen: false)
-        //       .uploadFile(_imageFile, MimeMediaType.image, _caseModel, 'image')
-        //       .then((isImageSuccess) async {
-        //     resultCount++;
-        //   });
-        // }
-        // if (_audioFile != null) {
-        //   uploadCount++;
-        //   await Provider.of<MultiPartUploadProvider>(context, listen: false)
-        //       .uploadFile(_audioFile, MimeMediaType.audio, _caseModel, 'audio')
-        //       .then((isImageSuccess) async {
-        //     resultCount++;
-        //   });
-        // }
-        // if (_pdfFile1 != null) {
-        //   uploadCount++;
-        //   await Provider.of<MultiPartUploadProvider>(context, listen: false)
-        //       .uploadFile(_pdfFile1, MimeMediaType.pdf, _caseModel, 'pdf1')
-        //       .then((isPDF1Success) {
-        //     resultCount++;
-        //   });
-        // }
-        // if (_pdfFile2 != null) {
-        //   uploadCount++;
-        //   await Provider.of<MultiPartUploadProvider>(context, listen: false)
-        //       .uploadFile(_pdfFile2, MimeMediaType.pdf, _caseModel, 'pdf2')
-        //       .then((isPDF2Success) {
-        //     resultCount++;
-        //   });
-        // }
-        // if (_pdfFile3 != null) {
-        //   uploadCount++;
-        //   await Provider.of<MultiPartUploadProvider>(context, listen: false)
-        //       .uploadFile(_pdfFile3, MimeMediaType.pdf, _caseModel, 'pdf3')
-        //       .then((isPDF3Success) {
-        //     resultCount++;
-        //   });
-        // }
-        // if (_documentFile != null) {
-        //   uploadCount++;
-        //   await Provider.of<MultiPartUploadProvider>(context, listen: false)
-        //       .uploadFile(
-        //           _documentFile, MimeMediaType.excel, _caseModel, 'excel')
-        //       .then((isPDF3Success) {
-        //     resultCount++;
-        //   });
-        // }
-        // if (_signFile != null) {
-        //   uploadCount++;
-        //   await Provider.of<MultiPartUploadProvider>(context, listen: false)
-        //       .uploadFile(_signFile, MimeMediaType.excel, _caseModel, 'sign')
-        //       .then((isPDF3Success) {
-        //     resultCount++;
-        //   });
-        // }
-        // if (_videoFile != null) {
-        //   uploadCount++;
-        //   await Provider.of<MultiPartUploadProvider>(context, listen: false)
-        //       .uploadFile(_videoFile, MimeMediaType.video, _caseModel, 'video')
-        //       .then((isImageSuccess) async {
-        //     resultCount++;
-        //   });
-        // }
+        if (_imageFile != null) {
+          uploadCount++;
+          await Provider.of<MultiPartUploadProvider>(context, listen: false)
+              .uploadFile(_imageFile, MimeMediaType.image, _caseModel, 'image')
+              .then((isImageSuccess) async {
+                if (isImageSuccess) {
+                  resultCount++;
+                }
+          });
+        }
+        if (_audioFile != null) {
+          uploadCount++;
+          await Provider.of<MultiPartUploadProvider>(context, listen: false)
+              .uploadFile(_audioFile, MimeMediaType.audio, _caseModel, 'audio')
+              .then((isAudioSuccess) async {
+                if (isAudioSuccess) {
+                  resultCount++;
+                }
+          });
+        }
+        if (_pdfFile1 != null) {
+          uploadCount++;
+          await Provider.of<MultiPartUploadProvider>(context, listen: false)
+              .uploadFile(_pdfFile1, MimeMediaType.pdf, _caseModel, 'pdf1')
+              .then((isPDF1Success) {
+            if (isPDF1Success) {
+              resultCount++;
+            }
+          });
+        }
+        if (_pdfFile2 != null) {
+          uploadCount++;
+          await Provider.of<MultiPartUploadProvider>(context, listen: false)
+              .uploadFile(_pdfFile2, MimeMediaType.pdf, _caseModel, 'pdf2')
+              .then((isPDF2Success) {
+            if (isPDF2Success) {
+              resultCount++;
+            }
+          });
+        }
+        if (_pdfFile3 != null) {
+          uploadCount++;
+          await Provider.of<MultiPartUploadProvider>(context, listen: false)
+              .uploadFile(_pdfFile3, MimeMediaType.pdf, _caseModel, 'pdf3')
+              .then((isPDF3Success) {
+            if (isPDF3Success) {
+              resultCount++;
+            }
+          });
+        }
+        if (_documentFile != null) {
+          uploadCount++;
+          await Provider.of<MultiPartUploadProvider>(context, listen: false)
+              .uploadFile(
+                  _documentFile, MimeMediaType.excel, _caseModel, 'excel')
+              .then((isDocSuccess) {
+            if (isDocSuccess) {
+              resultCount++;
+            }
+          });
+        }
+        if (_signFile != null) {
+          uploadCount++;
+          await Provider.of<MultiPartUploadProvider>(context, listen: false)
+              .uploadFile(_signFile, MimeMediaType.excel, _caseModel, 'signature')
+              .then((isSignSuccess) {
+            if (isSignSuccess) {
+              resultCount++;
+            }
+          });
+        }
+        if (_videoFile != null) {
+          uploadCount++;
+          await Provider.of<MultiPartUploadProvider>(context, listen: false)
+              .uploadFile(_videoFile, MimeMediaType.video, _caseModel, 'video')
+              .then((isVideoSuccess) async {
+            if (isVideoSuccess) {
+              resultCount++;
+            }
+          });
+        }
 
         if (resultCount == uploadCount) {
           await Provider.of<ClaimProvider>(context, listen: false)
@@ -481,12 +497,22 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                   .getCaseList(true);
               showSuccessToast('Cases Details submitted successfully');
             } else {
-              showErrorToast('Oops, Something went wrong. Please try later');
+              showErrorToast('Oops, Something went wrong. Please try again');
             }
           });
+        } else {
+          showErrorToast('Oops, uploading attachments failed. Please try again');
         }
       }
     });
+  }
+
+  Future<io.File> _createFileFromString(Uint8List bytes) async {
+    String dir = (await getApplicationDocumentsDirectory()).path;
+    io.File file = io.File(
+        "$dir/" + DateTime.now().millisecondsSinceEpoch.toString() + ".png");
+    await file.writeAsBytes(bytes);
+    return file;
   }
 
   void _launchURL(String url) async => await canLaunch(Uri.encodeFull(url))
@@ -1564,11 +1590,13 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                         onPressed: () async {
                           Navigator.pop(context);
                           if (_controller.isNotEmpty) {
-                            final Uint8List data = await _controller.toPngBytes();
+                            final Uint8List data =
+                                await _controller.toPngBytes();
                             if (data != null) {
-                              _signFile = io.File.fromRawPath(data);
-                              setState(() {
-                              });
+                              // _signFile = io.File.fromRawPath(data);
+                              _signFile = await _createFileFromString(data);
+                              print(_signFile.path);
+                              setState(() {});
                             }
                           }
                         },
