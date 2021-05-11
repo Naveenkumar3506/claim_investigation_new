@@ -26,13 +26,21 @@ class _HomeScreenState extends BaseState<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    StreamSubscription<Position> positionStream = Geolocator.getPositionStream(desiredAccuracy: LocationAccuracy.high).listen(
-            (Position position) {
-              if (position != null) {
-                Provider.of<ClaimProvider>(context, listen: false).updateLocation(position.latitude.toString(), position.longitude.toString());
-              }
-        //  print(position == null ? 'Unknown' : position.latitude.toString() + ', ' + position.longitude.toString());
-        });
+    StreamSubscription<Position> positionStream =
+        Geolocator.getPositionStream(desiredAccuracy: LocationAccuracy.high)
+            .listen((Position position) {
+      if (position != null) {
+        //  Provider.of<ClaimProvider>(context, listen: false).updateLocation(position.latitude.toString(), position.longitude.toString());
+      }
+      //  print(position == null ? 'Unknown' : position.latitude.toString() + ', ' + position.longitude.toString());
+    });
+
+    Future.delayed(Duration(milliseconds: 50)).then((value) async {
+      await Provider.of<ClaimProvider>(context, listen: false)
+          .getDashBoardFromDB();
+      await Provider.of<ClaimProvider>(context, listen: false).getDashBoard().then((value) async {
+      });
+    });
   }
 
   itemView(String title, int count) {
@@ -105,25 +113,20 @@ class _HomeScreenState extends BaseState<HomeScreen> {
     final double itemWidth = SizeConfig.screenWidth / 3;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Pre Claim'),
-      ),
-      body: FutureProvider<ReportModel>(
-        create: (ctx) =>
-            Provider.of<ClaimProvider>(context, listen: false).getDashBoard(),
-        catchError: (_, obj) {
-          return ReportModel();
-        },
-        child: Consumer<ReportModel>(
-          builder: (_, reportModel, child) {
-            if (reportModel == null) {
-              return Center(
-                child: Platform.isAndroid
-                    ? const CircularProgressIndicator()
-                    : const CupertinoActivityIndicator(radius: 15),
-              );
-            }
-            return Column(
+        appBar: AppBar(
+          title: Text('Pre Claim'),
+        ),
+        body:  Consumer<ClaimProvider>(builder: (_, claimProvider, child) {
+          if (claimProvider.reportModel == null) {
+            return Center(
+              child: Platform.isAndroid
+                  ? const CircularProgressIndicator()
+                  : const CupertinoActivityIndicator(radius: 15),
+            );
+          }
+          return ModalProgressHUD(
+            inAsyncCall: claimProvider.isLoading,
+            child: Column(
               children: [
                 Expanded(
                   child: GridView.builder(
@@ -133,18 +136,20 @@ class _HomeScreenState extends BaseState<HomeScreen> {
                     ),
                     itemBuilder: (_, index) {
                       if (index == 0) {
-                        return itemView(
-                            'PIV/PRV/LIVE count', reportModel.pivPrvLiveCount);
+                        return itemView('PIV/PRV/LIVE count',
+                            claimProvider.reportModel.pivPrvLiveCount);
                       } else if (index == 1) {
-                        return itemView('New', reportModel.reportModelNew);
+                        return itemView(
+                            'New', claimProvider.reportModel.reportModelNew);
                       } else if (index == 2) {
                         return itemView('Claim Document Pickup',
-                            reportModel.claimDocumentPickup);
+                            claimProvider.reportModel.claimDocumentPickup);
                       } else if (index == 3) {
-                        return itemView('Closed', reportModel.closed);
+                        return itemView(
+                            'Closed', claimProvider.reportModel.closed);
                       } else if (index == 4) {
                         return itemView('Actioned by Investigator',
-                            reportModel.actionedByInvestigator);
+                            claimProvider.reportModel.actionedByInvestigator);
                       }
                       return itemView('', 0);
                     },
@@ -158,7 +163,17 @@ class _HomeScreenState extends BaseState<HomeScreen> {
                     await Provider.of<ClaimProvider>(SizeConfig.cxt,
                             listen: false)
                         .getCaseList(true)
-                        .then((value) {
+                        .then((value) async {
+                      await Provider.of<ClaimProvider>(SizeConfig.cxt,
+                              listen: false)
+                          .getCasesFromDB();
+                      //hide dialog
+                      Navigator.pop(context);
+                      Get.toNamed(CaseListScreen.routeName);
+                    }, onError: (error) async {
+                      await Provider.of<ClaimProvider>(SizeConfig.cxt,
+                          listen: false)
+                          .getCasesFromDB();
                       //hide dialog
                       Navigator.pop(context);
                       Get.toNamed(CaseListScreen.routeName);
@@ -173,10 +188,8 @@ class _HomeScreenState extends BaseState<HomeScreen> {
                   height: 5,
                 )
               ],
-            );
-          },
-        ),
-      ),
-    );
+            ),
+          );
+        }));
   }
 }

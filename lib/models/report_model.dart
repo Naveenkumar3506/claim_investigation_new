@@ -34,4 +34,21 @@ class ReportModel {
     "Closed": closed,
     "Actioned by Investigator": actionedByInvestigator,
   };
+
+
+  factory ReportModel.fromMap(Map<String, dynamic> json) => ReportModel(
+    pivPrvLiveCount: json["PIV"],
+    reportModelNew: json["new"],
+    claimDocumentPickup: json["cdp"],
+    closed: json["closed"],
+    actionedByInvestigator: json["investigator"],
+  );
+
+  Map<String, dynamic> toMap() => {
+    "PIV": pivPrvLiveCount,
+    "new": reportModelNew,
+    "cdp ": claimDocumentPickup,
+    "closed": closed,
+    "investigator": actionedByInvestigator,
+  };
 }

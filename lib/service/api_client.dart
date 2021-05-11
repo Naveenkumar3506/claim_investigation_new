@@ -42,123 +42,129 @@ class ApiClient {
     if (withAuth) {}
 
     /// Check internet connection
-    var connectivityResult = await (Connectivity().checkConnectivity());
-    if (connectivityResult == ConnectivityResult.none) {
-      return Left(AppException('Please check your internet connection'));
-    }
+    // var connectivityResult = await (Connectivity().checkConnectivity());
+    // if (connectivityResult == ConnectivityResult.none) {
+    //   return Left(AppException('Please check your internet connection'));
+    // }
 
     var responseData;
     final url = ApiConstant.API_BASE_URL + path;
     debugPrint(' $_tagRequest  $method   $url \n $headers');
     debugPrint(file == null ? '  $jsonEncode($body)' : 'File upload');
 
-    switch (method) {
-      case ApiMethod.GET:
-        {
-          responseData = await http.get(url, headers: headers);
-        }
-        break;
-      case ApiMethod.POST:
-        {
-          responseData =
-              await http.post(url, headers: headers, body: json.encode(body));
-        }
-        break;
-      case ApiMethod.UPDATE:
-        {
-          responseData =
-              await http.patch(url, headers: headers, body: json.encode(body));
+    try {
+      switch (method) {
+        case ApiMethod.GET:
+          {
+            responseData = await http.get(url, headers: headers);
+          }
           break;
-        }
-      case ApiMethod.PUT:
-        {
-          responseData =
-              await http.put(url, headers: headers, body: json.encode(body));
+        case ApiMethod.POST:
+          {
+            responseData =
+                await http.post(url, headers: headers, body: json.encode(body));
+          }
           break;
-        }
-      case ApiMethod.DELETE:
-        {
-          responseData = await http.delete(
-            url,
-            headers: headers,
-          );
-        }
-        break;
-      case ApiMethod.MULTIPART:
-        {
-          var request = http.MultipartRequest(
-            'POST',
-            Uri.parse(
-              ApiConstant.API_BASE_URL + ApiConstant.API_FILE_UPLOAD,
-            ),
-          );
-          request.files.add(
-            await http.MultipartFile.fromPath('file', file.path,
-                contentType: http_parser.MediaType('image', '')),
-          );
-          request.headers.addAll(headers);
-          request.persistentConnection = true;
+        case ApiMethod.UPDATE:
+          {
+            responseData = await http.patch(url,
+                headers: headers, body: json.encode(body));
+            break;
+          }
+        case ApiMethod.PUT:
+          {
+            responseData =
+                await http.put(url, headers: headers, body: json.encode(body));
+            break;
+          }
+        case ApiMethod.DELETE:
+          {
+            responseData = await http.delete(
+              url,
+              headers: headers,
+            );
+          }
+          break;
+        case ApiMethod.MULTIPART:
+          {
+            var request = http.MultipartRequest(
+              'POST',
+              Uri.parse(
+                ApiConstant.API_BASE_URL + ApiConstant.API_FILE_UPLOAD,
+              ),
+            );
+            request.files.add(
+              await http.MultipartFile.fromPath('file', file.path,
+                  contentType: http_parser.MediaType('image', '')),
+            );
+            request.headers.addAll(headers);
+            request.persistentConnection = true;
 
-          await request.send().then((response) async {
-            // listen for response
-            if (response.statusCode == 200) {
-              response.stream.transform(utf8.decoder).listen((value) {
-                final jsonResponse = json.decode(value);
-                print(jsonResponse);
-                if (jsonResponse.containsKey('data') &&
-                    jsonResponse['data'] != null &&
-                    jsonResponse['data'].toString() != 'null') {
-                  return Right(jsonResponse['data']);
-                } else {
-                  if (jsonResponse.containsKey('status')) {
-                    return Left(AppException(jsonResponse['status']));
+            await request.send().then((response) async {
+              // listen for response
+              if (response.statusCode == 200) {
+                response.stream.transform(utf8.decoder).listen((value) {
+                  final jsonResponse = json.decode(value);
+                  print(jsonResponse);
+                  if (jsonResponse.containsKey('data') &&
+                      jsonResponse['data'] != null &&
+                      jsonResponse['data'].toString() != 'null') {
+                    return Right(jsonResponse['data']);
                   } else {
-                    return Left(AppException(
-                        'Oops, something went wrong. Please try again later.'));
-                    // return Left(Exception('Response Code: ${responseData.statusCode}- Service Unavailable!'));
+                    if (jsonResponse.containsKey('status')) {
+                      return Left(AppException(jsonResponse['status']));
+                    } else {
+                      return Left(AppException(
+                          'Oops, something went wrong. Please try again later.'));
+                      // return Left(Exception('Response Code: ${responseData.statusCode}- Service Unavailable!'));
+                    }
                   }
-                }
-              });
-            }
-          }).catchError((e) {
-            print(e);
-          });
-        }
-        break;
-    }
-
-    ///
-    debugPrint(
-      '$_tagResponse ${responseData.statusCode} - $url \n ${responseData.body}',
-    );
-    if (responseData.statusCode == HttpStatus.ok) {
-      final jsonResponse = json.decode(responseData.body);
-      if (jsonResponse is List<dynamic>) {
-        return Right(jsonResponse);
-      } else if (jsonResponse.containsKey('data') &&
-          jsonResponse['data'] != null &&
-          jsonResponse['data'].toString() != 'null') {
-        return Right(jsonResponse['data']);
-      } else {
-        if (jsonResponse.containsKey('status')) {
-          return Left(AppException(jsonResponse['status']));
-        } else {
-          return Left(AppException(
-              'Oops, something went wrong. Please try again later.'));
-          // return Left(Exception('Response Code: ${responseData.statusCode}- Service Unavailable!'));
-        }
+                });
+              }
+            }).catchError((e) {
+              print(e);
+            });
+          }
+          break;
       }
-    } else if (responseData.statusCode == HttpStatus.unauthorized) {
-      _pref.clearUserData();
-      Provider.of<AuthProvider>(SizeConfig.cxt, listen: false).clearUserData();
-      // Get.offAllNamed(LoginScreen.routeName);
-      showErrorToast('Your login session expired. Please login again');
-    } else {
-      return Left(
-          AppException('Oops, something went wrong. Please try again later.'));
-      return Left(Exception(
-          'Response Code: ${responseData.statusCode}- Service Unavailable!'));
+
+      ///
+      debugPrint(
+        '$_tagResponse ${responseData.statusCode} - $url \n ${responseData.body}',
+      );
+      if (responseData.statusCode == HttpStatus.ok) {
+        final jsonResponse = json.decode(responseData.body);
+        if (jsonResponse is List<dynamic>) {
+          return Right(jsonResponse);
+        } else if (jsonResponse.containsKey('data') &&
+            jsonResponse['data'] != null &&
+            jsonResponse['data'].toString() != 'null') {
+          return Right(jsonResponse['data']);
+        } else {
+          if (jsonResponse.containsKey('status')) {
+            return Left(AppException(jsonResponse['status']));
+          } else {
+            return Left(AppException(
+                'Oops, something went wrong. Please try again later.'));
+            // return Left(Exception('Response Code: ${responseData.statusCode}- Service Unavailable!'));
+          }
+        }
+      } else if (responseData.statusCode == HttpStatus.unauthorized) {
+        _pref.clearUserData();
+        Provider.of<AuthProvider>(SizeConfig.cxt, listen: false)
+            .clearUserData();
+        // Get.offAllNamed(LoginScreen.routeName);
+        showErrorToast('Your login session expired. Please login again');
+      } else {
+       // return Left(AppException('Oops, something went wrong. Please try again later.'));
+       // return Left(Exception('Response Code: ${responseData.statusCode}- Service Unavailable!'));
+        throw FetchDataException('Oops, something went wrong. Please try again later.');
+      }
+    } on SocketException {
+      throw FetchDataException('No Internet connection');
     }
+    return Left(AppException(
+        'Oops, something went wrong. Please try again later.'));
   }
 
   Future uploadFiles(
@@ -295,15 +301,48 @@ class ApiClient {
   }
 
   static var httpClient = new HttpClient();
+
   Future<File> downloadFile(String url, String filename) async {
     var request = await httpClient.getUrl(Uri.parse(url));
     var response = await request.close();
     var bytes = await consolidateHttpClientResponseBytes(response);
-    String dir = Platform.isAndroid ? await ExtStorage.getExternalStoragePublicDirectory(
-        ExtStorage.DIRECTORY_DOWNLOADS) : (await getApplicationDocumentsDirectory()).path;
+    String dir = Platform.isAndroid
+        ? await ExtStorage.getExternalStoragePublicDirectory(
+            ExtStorage.DIRECTORY_DOWNLOADS)
+        : (await getApplicationDocumentsDirectory()).path;
 
     File file = new File('$dir/$filename');
     await file.writeAsBytes(bytes);
     return file;
   }
+}
+
+
+//
+class CustomException implements Exception {
+  final _message;
+  final _prefix;
+
+  CustomException([this._message, this._prefix]);
+
+  String toString() {
+    return "$_prefix$_message";
+  }
+}
+
+class FetchDataException extends CustomException {
+  FetchDataException([String message])
+      : super(message, "");
+}
+
+class BadRequestException extends CustomException {
+  BadRequestException([message]) : super(message, "Invalid Request: ");
+}
+
+class UnauthorisedException extends CustomException {
+  UnauthorisedException([message]) : super(message, "Unauthorised: ");
+}
+
+class InvalidInputException extends CustomException {
+  InvalidInputException([String message]) : super(message, "Invalid Input: ");
 }

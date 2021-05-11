@@ -5,6 +5,8 @@ import 'package:claim_investigation/models/case_model.dart';
 import 'package:claim_investigation/models/report_model.dart';
 import 'package:claim_investigation/service/api_client.dart';
 import 'package:claim_investigation/service/api_constants.dart';
+import 'package:claim_investigation/storage/db_helper.dart';
+import 'package:claim_investigation/util/app_exception.dart';
 import 'package:claim_investigation/util/app_helper.dart';
 import 'package:claim_investigation/util/app_log.dart';
 import 'package:flutter/material.dart';
@@ -16,6 +18,14 @@ class ClaimProvider extends BaseProvider {
   int fetchDataSize = 10;
   bool _isLoadMore = false;
   ScrollController scrollController;
+  ReportModel _reportModel;
+
+  ReportModel get reportModel => _reportModel;
+
+  set reportModel(ReportModel value) {
+    _reportModel = value;
+    notifyListeners();
+  }
 
   List<CaseModel> get listCases => _listCases;
 
@@ -33,21 +43,31 @@ class ClaimProvider extends BaseProvider {
 
   Future<ReportModel> getDashBoard() async {
     isLoading = true;
-    final response = await super.apiClient.callWebService(
-        path: ApiConstant.API_DASHBOARD_DETAIL,
-        method: ApiMethod.POST,
-        body: {
-          'username': pref.user.username,
-        },
-        withAuth: false);
-    isLoading = false;
-    return response.fold((l) {
-      AppLog.print('left----> ' + l.toString());
-      showErrorToast(l.toString());
-      return null;
-    }, (r) {
-      AppLog.print('right----> ' + r.toString());
-      return ReportModel.fromJson(r);
+    await super
+        .apiClient
+        .callWebService(
+            path: ApiConstant.API_DASHBOARD_DETAIL,
+            method: ApiMethod.POST,
+            body: {
+              'username': pref.user.username,
+            },
+            withAuth: false)
+        .then((response) {
+      isLoading = false;
+      return response.fold((l) {
+        AppLog.print('left----> ' + l.toString());
+        showErrorToast(l.toString());
+        return null;
+      }, (r) async {
+        AppLog.print('right----> ' + r.toString());
+        final reportModel = ReportModel.fromJson(r);
+        await DBHelper.saveReport(reportModel);
+        return reportModel;
+      });
+    }, onError: (error) {
+      isLoading = false;
+      showErrorToast(error.toString());
+      throw error;
     });
   }
 
@@ -62,43 +82,50 @@ class ClaimProvider extends BaseProvider {
       isLoading = true;
     }
 
-    final response = await super.apiClient.callWebService(
-        path: ApiConstant.API_GET_CASE_LIST,
-        method: ApiMethod.POST,
-        body: {
-          "username": pref.user.username,
-          "pageNum": caseListPageNumber,
-          "pagesize": fetchDataSize
-        },
-        withAuth: false);
-
-    isLoading = false;
-    isLoadMore = false;
-
-    response.fold((l) {
-      AppLog.print('left----> ' + l.toString());
-      showErrorToast(l.toString());
-    }, (r) {
-      AppLog.print('right----> ' + r.toString());
-      final parsed = r.cast<Map<String, dynamic>>();
-      List<CaseModel> arrayCases =
-      parsed.map<CaseModel>((json) => CaseModel.fromJson(json)).toList();
-      if (arrayCases.isNotEmpty) {
-        if (isRefresh) {
-          listCases.clear();
-          if (scrollController != null) {
-            // scrollController.animateTo(
-            //   0.0,
-            //   curve: Curves.easeOut,
-            //   duration: const Duration(milliseconds: 300),
-            // );
+    await super
+        .apiClient
+        .callWebService(
+            path: ApiConstant.API_GET_CASE_LIST,
+            method: ApiMethod.POST,
+            body: {
+              "username": pref.user.username,
+              "pageNum": caseListPageNumber,
+              "pagesize": fetchDataSize
+            },
+            withAuth: false)
+        .then((response) async {
+      isLoading = false;
+      isLoadMore = false;
+      response.fold((l) {
+        AppLog.print('left----> ' + l.toString());
+        showErrorToast(l.toString());
+      }, (r) async {
+        AppLog.print('right----> ' + r.toString());
+        final parsed = r.cast<Map<String, dynamic>>();
+        List<CaseModel> arrayCases =
+            parsed.map<CaseModel>((json) => CaseModel.fromJson(json)).toList();
+        if (arrayCases.isNotEmpty) {
+          if (isRefresh) {
+            listCases.clear();
+            if (scrollController != null) {
+              // scrollController.animateTo(
+              //   0.0,
+              //   curve: Curves.easeOut,
+              //   duration: const Duration(milliseconds: 300),
+              // );
+            }
           }
+          listCases.addAll(arrayCases);
+          await DBHelper.saveCases(listCases);
+          caseListPageNumber += 1;
+        } else {
+          showSuccessToast(isLoadMore ? 'you are done' : 'No Cases Found');
         }
-        listCases.addAll(arrayCases);
-        caseListPageNumber += 1;
-      } else {
-        showSuccessToast(isLoadMore ? 'you are done' : 'No Cases Found');
-      }
+      });
+    }, onError: (error) {
+      isLoading = false;
+      isLoadMore = false;
+      throw error;
     });
   }
 
@@ -174,7 +201,7 @@ class ClaimProvider extends BaseProvider {
       AppLog.print('right----> ' + r.toString());
       final parsed = r.cast<Map<String, dynamic>>();
       List<CaseModel> arrayCases =
-      parsed.map<CaseModel>((json) => CaseModel.fromJson(json)).toList();
+          parsed.map<CaseModel>((json) => CaseModel.fromJson(json)).toList();
       if (arrayCases.isNotEmpty) {
         if (isRefresh) {
           listCases.clear();
@@ -201,8 +228,8 @@ class ClaimProvider extends BaseProvider {
   }
 
   Future<File> downloadFile(String url, String filename) async {
-   final file = await apiClient.downloadFile(url, filename);
-   return file;
+    final file = await apiClient.downloadFile(url, filename);
+    return file;
   }
 
   Future updateLocation(String lat, String long) async {
@@ -213,12 +240,24 @@ class ClaimProvider extends BaseProvider {
           "username": pref.user.username,
           "latitude": caseListPageNumber,
           "longitude": fetchDataSize
-        }, withAuth: false);
+        },
+        withAuth: false);
 
     response.fold((l) {
       AppLog.print('left----> ' + l.toString());
     }, (r) {
       AppLog.print('right----> ' + r.toString());
     });
+  }
+
+  // database
+  Future getCasesFromDB() async {
+    final arrayCases = await DBHelper.getAllCases();
+    listCases = arrayCases;
+  }
+
+  Future<ReportModel> getDashBoardFromDB() async {
+    reportModel = await DBHelper.getReport();
+    return reportModel;
   }
 }

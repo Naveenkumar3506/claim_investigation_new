@@ -10,6 +10,7 @@ import 'package:claim_investigation/providers/claim_provider.dart';
 import 'package:claim_investigation/providers/multipart_upload_provider.dart';
 import 'package:claim_investigation/screen/full_image_screen.dart';
 import 'package:claim_investigation/screen/pdfView_screen.dart';
+import 'package:claim_investigation/storage/db_helper.dart';
 import 'package:claim_investigation/util/app_enum.dart';
 import 'package:claim_investigation/util/app_helper.dart';
 import 'package:claim_investigation/util/color_contants.dart';
@@ -34,6 +35,8 @@ import 'package:provider/provider.dart';
 import 'package:signature/signature.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_thumbnail/video_thumbnail.dart';
+import 'package:path/path.dart' as path;
+import 'package:image/image.dart' as ui;
 
 class CaseDetailScreen extends BasePage {
   static const routeName = '/caseDetailScreen';
@@ -106,6 +109,8 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
       }
     }
 
+    _imageFile = io.File(_caseModel.image);
+
     try {
       new Future.delayed(Duration(milliseconds: 500), () async {
         await VideoThumbnail.thumbnailFile(
@@ -142,12 +147,12 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
       if (await FlutterAudioRecorder.hasPermissions) {
         String customPath = '/flutter_audio_recorder_';
         io.Directory appDocDirectory;
-//        io.Directory appDocDirectory = await getApplicationDocumentsDirectory();
-        if (io.Platform.isIOS) {
-          appDocDirectory = await getApplicationDocumentsDirectory();
-        } else {
-          appDocDirectory = await getExternalStorageDirectory();
-        }
+        appDocDirectory = await getApplicationDocumentsDirectory();
+//         if (io.Platform.isIOS) {
+//           appDocDirectory = await getApplicationDocumentsDirectory();
+//         } else {
+//           appDocDirectory = await getExternalStorageDirectory();
+//         }
 
         // can add extension like ".mp4" ".wav" ".m4a" ".aac"
         customPath = appDocDirectory.path +
@@ -386,8 +391,8 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
       if (position != null) {
         print('got');
         _caseModel.caseDescription = descTextController.text;
-        _caseModel.latitude = position.latitude.toString();
-        _caseModel.longitude = position.longitude.toString();
+        _caseModel.latitude = position.latitude.toStringAsFixed(5);
+        _caseModel.longitude = position.longitude.toStringAsFixed(5);
         _caseModel.newRemarks = remarksTextController.text;
 
         showLoadingDialog();
@@ -395,24 +400,24 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
         var resultCount = 0;
 
         final results = await Future.wait([
-          // uploadImage(),
-          // uploadPDF1(),
-          // uploadPDF2(),
-          // uploadPDF3(),
-         // uploadSign(),
-          // uploadDocument(),
-          // uploadAudio(),
-          // uploadVideo()
+          uploadImage(),
+          uploadPDF1(),
+          uploadPDF2(),
+          uploadPDF3(),
+          uploadSign(),
+          uploadDocument(),
+          uploadAudio(),
+          uploadVideo()
         ]);
 
-        if (_imageFile != null) {
+        /* if (_imageFile != null) {
           uploadCount++;
           await Provider.of<MultiPartUploadProvider>(context, listen: false)
               .uploadFile(_imageFile, MimeMediaType.image, _caseModel, 'image')
               .then((isImageSuccess) async {
-                if (isImageSuccess) {
-                  resultCount++;
-                }
+            if (isImageSuccess) {
+              resultCount++;
+            }
           });
         }
         if (_audioFile != null) {
@@ -420,9 +425,9 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
           await Provider.of<MultiPartUploadProvider>(context, listen: false)
               .uploadFile(_audioFile, MimeMediaType.audio, _caseModel, 'audio')
               .then((isAudioSuccess) async {
-                if (isAudioSuccess) {
-                  resultCount++;
-                }
+            if (isAudioSuccess) {
+              resultCount++;
+            }
           });
         }
         if (_pdfFile1 != null) {
@@ -459,7 +464,7 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
           uploadCount++;
           await Provider.of<MultiPartUploadProvider>(context, listen: false)
               .uploadFile(
-                  _documentFile, MimeMediaType.excel, _caseModel, 'excel')
+              _documentFile, MimeMediaType.excel, _caseModel, 'excel')
               .then((isDocSuccess) {
             if (isDocSuccess) {
               resultCount++;
@@ -469,7 +474,8 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
         if (_signFile != null) {
           uploadCount++;
           await Provider.of<MultiPartUploadProvider>(context, listen: false)
-              .uploadFile(_signFile, MimeMediaType.excel, _caseModel, 'signature')
+              .uploadFile(
+              _signFile, MimeMediaType.excel, _caseModel, 'signature')
               .then((isSignSuccess) {
             if (isSignSuccess) {
               resultCount++;
@@ -491,8 +497,8 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
           await Provider.of<ClaimProvider>(context, listen: false)
               .submitReport(_caseModel)
               .then((isSuccess) {
+            Navigator.pop(context);
             if (isSuccess) {
-              Navigator.pop(context);
               Provider.of<ClaimProvider>(SizeConfig.cxt, listen: false)
                   .getCaseList(true);
               showSuccessToast('Cases Details submitted successfully');
@@ -501,10 +507,98 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
             }
           });
         } else {
-          showErrorToast('Oops, uploading attachments failed. Please try again');
+          showErrorToast(
+              'Oops, uploading attachments failed. Please try again');
+        } */
+
+        if (results.where((element) => element == false).length == 0) {
+          await Provider.of<ClaimProvider>(context, listen: false)
+              .submitReport(_caseModel)
+              .then((isSuccess) {
+            Navigator.pop(context);
+            if (isSuccess) {
+              Provider.of<ClaimProvider>(SizeConfig.cxt, listen: false)
+                  .getCaseList(true);
+              showSuccessToast('Cases Details submitted successfully');
+            } else {
+              showErrorToast('Oops, Something went wrong. Please try again');
+            }
+          }, onError: (error) {
+            Navigator.pop(context);
+            Navigator.pop(context);
+            showErrorToast(error.toString());
+          });
+        } else {
+          Navigator.pop(context);
+          showErrorToast(
+              'Oops, uploading attachments failed. Please try again');
         }
+      } else {
+        showErrorToast('Oops, unable to get your location. Please try again');
+      }
+    }, onError: (error) {
+      showErrorToast(error.toString());
+    });
+  }
+
+  Future saveDraft() async {
+    showLoadingDialog();
+
+    await _determinePosition().then((position) async {
+      if (position != null) {
+        _caseModel.latitude = position.latitude.toStringAsFixed(5);
+        _caseModel.longitude = position.longitude.toStringAsFixed(5);
+        //
+        ui.Image originalImage = ui.decodeImage(_imageFile.readAsBytesSync());
+        ui.drawString(
+          originalImage,
+          ui.arial_48,
+          originalImage.width - 500,
+          originalImage.height - 100,
+          '${_caseModel.latitude}, ${_caseModel.longitude}',
+        );
+        // Store the watermarked image to a File
+        List<int> wmImage = ui.encodePng(originalImage);
+        await _createWaterMarkFileFromString(wmImage).then((value) {
+          _imageFile = value;
+        });
       }
     });
+    _caseModel.caseDescription = descTextController.text;
+    _caseModel.newRemarks = remarksTextController.text;
+
+    if (_imageFile != null) {
+      io.File savedFile = await _saveFileToAppDirectory(_imageFile);
+      _caseModel.image = savedFile.path;
+    }
+
+    if (_videoFile != null) {
+      io.File savedFile = await _saveFileToAppDirectory(_videoFile);
+      _caseModel.videoFilePath = savedFile.path;
+    }
+
+    if (_pdfFile1 != null) {
+      io.File savedFile = await _saveFileToAppDirectory(_videoFile);
+      _caseModel.pdf1FilePath = savedFile.path;
+    }
+
+    if (_pdfFile2 != null) {
+      io.File savedFile = await _saveFileToAppDirectory(_pdfFile2);
+      _caseModel.pdf2FilePath = savedFile.path;
+    }
+
+    if (_pdfFile3 != null) {
+      io.File savedFile = await _saveFileToAppDirectory(_pdfFile3);
+      _caseModel.pdf3FilePath = savedFile.path;
+    }
+
+    if (_documentFile != null) {
+      io.File savedFile = await _saveFileToAppDirectory(_documentFile);
+      _caseModel.excelFilepath = savedFile.path;
+    }
+
+    await DBHelper.updateCaseDetail(_caseModel);
+    Navigator.pop(context);
   }
 
   Future<io.File> _createFileFromString(Uint8List bytes) async {
@@ -513,6 +607,33 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
         "$dir/" + DateTime.now().millisecondsSinceEpoch.toString() + ".png");
     await file.writeAsBytes(bytes);
     return file;
+  }
+
+  Future<io.File> _saveFileToAppDirectory(io.File file) async {
+    final appDir = await getApplicationDocumentsDirectory();
+    String fileName = path.basename(file.path);
+    final folderPath =
+        await _createFolder('${appDir.path}/${_caseModel.caseId}');
+    return await _imageFile.copy('$folderPath/$fileName');
+  }
+
+  Future<io.File> _createWaterMarkFileFromString(Uint8List bytes) async {
+    final appDir = await getApplicationDocumentsDirectory();
+    final folderPath =
+        await _createFolder('${appDir.path}/${_caseModel.caseId}');
+    io.File file = io.File("$folderPath/" + "watermark.png");
+    await file.writeAsBytes(bytes);
+    return file;
+  }
+
+  Future<String> _createFolder(String folderPath) async {
+    final path = io.Directory(folderPath);
+    if ((await path.exists())) {
+      return Future.value(path.path);
+    } else {
+      await path.create();
+      return Future.value(path.path);
+    }
   }
 
   void _launchURL(String url) async => await canLaunch(Uri.encodeFull(url))
@@ -870,6 +991,25 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                   ),
                 ),
               ),
+              !isNotEditable
+                  ? Padding(
+                      padding: const EdgeInsets.only(
+                          left: 15.0, right: 15.0, bottom: 20.0),
+                      child: SizedBox(
+                        width: double.maxFinite,
+                        child: CupertinoButton(
+                          color: Colors.grey,
+                          child: Text(
+                            'Save as Draft',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                          onPressed: () {
+                            saveDraft();
+                          },
+                        ),
+                      ),
+                    )
+                  : Container(),
             ],
           ),
         ),
@@ -1312,7 +1452,7 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                   }
                   imagePickerDialog(() async {
                     //camera
-                    await getImageFile(ImageSource.camera).then((value) {
+                    await getImageFile(ImageSource.camera).then((value) async {
                       if (value != null) {
                         setState(() {
                           _imageFile = value;
@@ -1330,17 +1470,25 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                     });
                   });
                 },
-                child: _caseModel.image != null && _caseModel.image.isNotEmpty
+                child: _imageFile != null
                     ? SizedBox(
                         height: SizeConfig.screenHeight * .3,
                         width: SizeConfig.screenWidth,
-                        child: CachedNetworkImage(
-                          imageUrl: _caseModel.image,
+                        child: Image.file(
+                          _imageFile,
                           fit: BoxFit.cover,
                         ),
                       )
-                    : _imageFile == null
-                        ? Stack(alignment: Alignment.center, children: [
+                    : _caseModel.image != null && _caseModel.image.isNotEmpty
+                        ? SizedBox(
+                            height: SizeConfig.screenHeight * .3,
+                            width: SizeConfig.screenWidth,
+                            child: CachedNetworkImage(
+                              imageUrl: _caseModel.image,
+                              fit: BoxFit.cover,
+                            ),
+                          )
+                        : Stack(alignment: Alignment.center, children: [
                             Container(
                               height: SizeConfig.screenHeight * .3,
                               decoration: BoxDecoration(
@@ -1356,15 +1504,7 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                             Positioned(
                                 top: (SizeConfig.screenHeight * .3) / 2 + 60,
                                 child: Text("Upload Image"))
-                          ])
-                        : SizedBox(
-                            height: SizeConfig.screenHeight * .3,
-                            width: SizeConfig.screenWidth,
-                            child: Image.file(
-                              _imageFile,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
+                          ]),
               ),
             ],
           ),

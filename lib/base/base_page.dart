@@ -10,6 +10,7 @@ import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:modal_progress_hud/modal_progress_hud.dart';
 import 'package:provider/provider.dart';
+import 'package:video_compress/video_compress.dart';
 
 import '../main.dart';
 import 'base_provider.dart';
@@ -60,14 +61,14 @@ abstract class BaseState<Page extends BasePage> extends State<Page> {
                 Divider(
                   height: 3,
                 ),
-                FlatButton.icon(
-                  icon: Icon(Icons.photo_album),
-                  label: Text('Gallery'),
-                  onPressed: () {
-                    Navigator.pop(context);
-                    onGallery();
-                  },
-                ),
+                // FlatButton.icon(
+                //   icon: Icon(Icons.photo_album),
+                //   label: Text('Gallery'),
+                //   onPressed: () {
+                //     Navigator.pop(context);
+                //     onGallery();
+                //   },
+                // ),
               ],
             ),
           )
@@ -110,14 +111,14 @@ abstract class BaseState<Page extends BasePage> extends State<Page> {
                 Divider(
                   height: 3,
                 ),
-                FlatButton.icon(
-                  icon: Icon(Icons.photo_album),
-                  label: Text('Gallery'),
-                  onPressed: () {
-                    Navigator.pop(context);
-                    onGallery();
-                  },
-                ),
+                // FlatButton.icon(
+                //   icon: Icon(Icons.photo_album),
+                //   label: Text('Gallery'),
+                //   onPressed: () {
+                //     Navigator.pop(context);
+                //     onGallery();
+                //   },
+                // ),
               ],
             ),
           )
@@ -156,7 +157,8 @@ abstract class BaseState<Page extends BasePage> extends State<Page> {
   Future<File> getVideoFile(ImageSource source) async {
     final picker = ImagePicker();
     final tempFile = await picker.getVideo(
-        source: source, maxDuration: const Duration(minutes: 1));
+        source: source, maxDuration: const Duration(seconds: 5));
+
     if (tempFile != null) {
       debugPrint("${File(tempFile.path)}");
       return File(tempFile.path);
