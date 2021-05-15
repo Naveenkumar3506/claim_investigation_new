@@ -6,6 +6,7 @@ import 'package:claim_investigation/models/report_model.dart';
 import 'package:claim_investigation/service/api_client.dart';
 import 'package:claim_investigation/service/api_constants.dart';
 import 'package:claim_investigation/storage/db_helper.dart';
+import 'package:claim_investigation/storage/db_manager.dart';
 import 'package:claim_investigation/util/app_exception.dart';
 import 'package:claim_investigation/util/app_helper.dart';
 import 'package:claim_investigation/util/app_log.dart';
@@ -116,7 +117,7 @@ class ClaimProvider extends BaseProvider {
             }
           }
           listCases.addAll(arrayCases);
-          await DBHelper.saveCases(listCases);
+          await DBHelper.saveCases(listCases, DbManager.caseTable);
           caseListPageNumber += 1;
         } else {
           showSuccessToast(isLoadMore ? 'you are done' : 'No Cases Found');
@@ -168,16 +169,22 @@ class ClaimProvider extends BaseProvider {
     }
 
     String path = "";
+    String tableName = DbManager.caseTable;
     if (type == "PIV/PRV/LIVE count") {
       path = ApiConstant.API_GET_CASE_INTIMATION_LIST;
+      tableName = DbManager.PIVCaseTable;
     } else if (type == "New") {
       path = ApiConstant.API_GET_NEW_CASE_LIST;
+      tableName = DbManager.NewCaseTable;
     } else if (type == "Claim Document Pickup") {
       path = ApiConstant.API_GET_CDP_CASE_LIST;
+      tableName = DbManager.CDPCaseTable;
     } else if (type == "Closed") {
       path = ApiConstant.API_GET_CLOSED_CASE_LIST;
+      tableName = DbManager.ClosedCaseTable;
     } else {
       path = ApiConstant.API_GET_CASE_SUBMITTED_LIST;
+      tableName = DbManager.InvestigatorCaseTable;
     }
 
     final response = await super.apiClient.callWebService(
@@ -197,7 +204,7 @@ class ClaimProvider extends BaseProvider {
       AppLog.print('left----> ' + l.toString());
       showErrorToast(l.toString());
       return listCases;
-    }, (r) {
+    }, (r) async {
       AppLog.print('right----> ' + r.toString());
       final parsed = r.cast<Map<String, dynamic>>();
       List<CaseModel> arrayCases =
@@ -214,6 +221,7 @@ class ClaimProvider extends BaseProvider {
           }
         }
         listCases.addAll(arrayCases);
+        await DBHelper.saveCases(listCases, tableName);
         caseListPageNumber += 1;
       } else {
         showSuccessToast(isLoadMore ? 'you are done' : 'No Cases Found');
@@ -238,8 +246,8 @@ class ClaimProvider extends BaseProvider {
         method: ApiMethod.POST,
         body: {
           "username": pref.user.username,
-          "latitude": caseListPageNumber,
-          "longitude": fetchDataSize
+          "latitude": lat,
+          "longitude": long
         },
         withAuth: false);
 

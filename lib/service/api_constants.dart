@@ -1,4 +1,9 @@
 class ApiConstant {
+
+  //Production
+ // static const API_BASE_URL = 'https://preclaimuat.tataaia.com:4443/Pre-claim-update-uat/';
+
+  // Xangers
   static const API_BASE_URL = 'http://13.235.150.162:8080/Pre-claim-update/';
   // static const API_BASE_URL = 'http://172.23.44.9:8080/Pre-claim-update-uat/';
   ///

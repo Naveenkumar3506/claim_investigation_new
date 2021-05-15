@@ -54,11 +54,11 @@ class _EditProfileScreenState extends BaseState<EditProfileScreen> {
       print('Form is invalid');
       return false;
     }
-
   }
 
   updateProfile() async {
     if (_validateInputs()) {
+      hideKeyboard();
       try {
         setState(() {
           _isLoading = true;
@@ -101,150 +101,159 @@ class _EditProfileScreenState extends BaseState<EditProfileScreen> {
       ),
       body: ModalProgressHUD(
         inAsyncCall: _isLoading,
-        child: SingleChildScrollView(
-          child: SafeArea(
-            child: Form(
-              key: _editFormKey,
-              child: Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SizedBox(height: 30),
-                    InkWell(
-                      onTap: () {
-                        imagePickerDialog(() async {
-                          //camera
-                          await getImageFile(ImageSource.camera)
-                              .then((value) async {
-                            if (value != null) {
-                              setState(() {
-                                _imageFile = value;
-                              });
-                            }
+        child: GestureDetector(
+          onTap: () {
+            hideKeyboard();
+          },
+          child: SingleChildScrollView(
+            child: SafeArea(
+              child: Form(
+                key: _editFormKey,
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SizedBox(height: 30),
+                      InkWell(
+                        onTap: () {
+                          imagePickerDialog(() async {
+                            //camera
+                            await getImageFile(ImageSource.camera)
+                                .then((value) async {
+                              if (value != null) {
+                                setState(() {
+                                  _imageFile = value;
+                                });
+                              }
+                            });
+                          }, () async {
+                            //gallery
+                            await getImageFile(ImageSource.gallery)
+                                .then((value) async {
+                              if (value != null) {
+                                setState(() {
+                                  _imageFile = value;
+                                });
+                              }
+                            });
                           });
-                        }, () async {
-                          //gallery
-                          await getImageFile(ImageSource.gallery)
-                              .then((value) async {
-                            if (value != null) {
-                              setState(() {
-                                _imageFile = value;
-                              });
-                            }
-                          });
-                        });
-                      },
-                      child: CircleAvatar(
-                        backgroundColor: Colors.white,
-                        radius: 35,
-                        child: _imageFile != null
-                            ? ClipOval(
-                                child: Image.file(
-                                  _imageFile,
-                                  width: 70,
-                                  height: 70,
-                                  fit: BoxFit.cover,
-                                ),
-                              )
-                            : null,
-                        backgroundImage: (pref.user.userImage == null ||
-                                pref.user.userImage == "")
-                            ? AssetImage(
-                                'assets/images/ic_profile_placeholder.jpg')
-                            : CachedNetworkImageProvider(pref.user.userImage),
-                      ),
-                    ),
-                    SizedBox(height: 20),
-                    AppFormTextField(
-                      hintText: 'Enter your username',
-                      hintLabel: 'Username',
-                      controller: _userNameTextController,
-                      ctx: context,
-                      focusNode: _emailNode,
-                      textInputAction: TextInputAction.next,
-                      keyboardType: TextInputType.emailAddress,
-                      onSubmit: (_) {
-                        FocusScope.of(context).requestFocus(_passwordNode);
-                      },
-                      validator: (email) {
-                        if (email == "") {
-                          return 'Please enter username';
-                        }
-                        return null;
-                      },
-                    ),
-                    SizedBox(height: 15),
-                    AppFormTextField(
-                      hintText: 'Enter your full name',
-                      hintLabel: 'Full name',
-                      controller: _fullNameTextController,
-                      ctx: context,
-                      focusNode: _emailNode,
-                      textInputAction: TextInputAction.next,
-                      keyboardType: TextInputType.emailAddress,
-                      onSubmit: (_) {
-                        FocusScope.of(context).requestFocus(_passwordNode);
-                      },
-                      validator: (email) {
-                        if (email == "") {
-                          return 'Please enter full name';
-                        }
-                        return null;
-                      },
-                    ),
-                    SizedBox(height: 15),
-                    AppFormTextField(
-                      hintText: 'Enter your email id',
-                      hintLabel: 'Email Id',
-                      controller: _emailTextController,
-                      ctx: context,
-                      focusNode: _emailNode,
-                      textInputAction: TextInputAction.next,
-                      keyboardType: TextInputType.emailAddress,
-                      onSubmit: (_) {
-                        FocusScope.of(context).requestFocus(_passwordNode);
-                      },
-                      validator: (email) {
-                        if (email == "") {
-                          return 'Please enter email-id';
-                        }
-                        return null;
-                      },
-                    ),
-                    SizedBox(height: 15),
-                    AppFormTextField(
-                      hintText: 'Enter your phone number',
-                      hintLabel: 'Phone Number',
-                      controller: _phoneTextController,
-                      ctx: context,
-                      focusNode: _emailNode,
-                      textInputAction: TextInputAction.next,
-                      keyboardType: TextInputType.emailAddress,
-                      onSubmit: (_) {
-                        FocusScope.of(context).requestFocus(_passwordNode);
-                      },
-                      validator: (email) {
-                        if (email == "") {
-                          return 'Please enter phone number';
-                        }
-                        return null;
-                      },
-                    ),
-                    SizedBox(height: 30),
-                    SizedBox(
-                      width: double.maxFinite,
-                      child: CupertinoButton(
-                        color: Theme.of(context).primaryColor,
-                        child: Text(
-                          'Update profile',
-                          style: TextStyle(color: Colors.white),
+                        },
+                        child: CircleAvatar(
+                          backgroundColor: Colors.white,
+                          radius: 35,
+                          child: _imageFile != null
+                              ? ClipOval(
+                                  child: Image.file(
+                                    _imageFile,
+                                    width: 70,
+                                    height: 70,
+                                    fit: BoxFit.cover,
+                                  ),
+                                )
+                              : null,
+                          backgroundImage: (pref.user.userImage == null ||
+                                  pref.user.userImage == "")
+                              ? AssetImage(
+                                  'assets/images/ic_profile_placeholder.jpg')
+                              : CachedNetworkImageProvider(pref.user.userImage),
                         ),
-                        onPressed: () => updateProfile(),
                       ),
-                    ),
-                    SizedBox(height: 10),
-                  ],
+                      SizedBox(height: 20),
+                      AppFormTextField(
+                        hintText: 'Enter your username',
+                        hintLabel: 'Username',
+                        controller: _userNameTextController,
+                        ctx: context,
+                        focusNode: _emailNode,
+                        textInputAction: TextInputAction.next,
+                        keyboardType: TextInputType.emailAddress,
+                        onSubmit: (_) {
+                          FocusScope.of(context).requestFocus(_passwordNode);
+                        },
+                        validator: (email) {
+                          if (email == "") {
+                            return 'Please enter username';
+                          }
+                          return null;
+                        },
+                      ),
+                      SizedBox(height: 15),
+                      AppFormTextField(
+                        hintText: 'Enter your full name',
+                        hintLabel: 'Full name',
+                        controller: _fullNameTextController,
+                        ctx: context,
+                        focusNode: _emailNode,
+                        textInputAction: TextInputAction.next,
+                        keyboardType: TextInputType.emailAddress,
+                        onSubmit: (_) {
+                          FocusScope.of(context).requestFocus(_passwordNode);
+                        },
+                        validator: (email) {
+                          if (email == "") {
+                            return 'Please enter full name';
+                          }
+                          return null;
+                        },
+                      ),
+                      SizedBox(height: 15),
+                      AppFormTextField(
+                        hintText: 'Enter your email id',
+                        hintLabel: 'Email Id',
+                        controller: _emailTextController,
+                        ctx: context,
+                        focusNode: _emailNode,
+                        textInputAction: TextInputAction.next,
+                        keyboardType: TextInputType.emailAddress,
+                        onSubmit: (_) {
+                          FocusScope.of(context).requestFocus(_passwordNode);
+                        },
+                        validator: (email) {
+                          if (email == "") {
+                            return 'Please enter email-id';
+                          } else if (!email.toString().isValidEmail()) {
+                            return 'Please enter valid email';
+                          }
+                          return null;
+                        },
+                      ),
+                      SizedBox(height: 15),
+                      AppFormTextField(
+                        hintText: 'Enter your phone number',
+                        hintLabel: 'Phone Number',
+                        controller: _phoneTextController,
+                        ctx: context,
+                        focusNode: _emailNode,
+                        textInputAction: TextInputAction.next,
+                        keyboardType: TextInputType.number,
+                        onSubmit: (_) {
+                          FocusScope.of(context).requestFocus(_passwordNode);
+                        },
+                        validator: (phone) {
+                          if (phone == "") {
+                            return 'Please enter phone number';
+                          } else if (phone.toString().length != 10) {
+                            return 'Please enter valid phone number';
+                          }
+                          return null;
+                        },
+                      ),
+                      SizedBox(height: 30),
+                      SizedBox(
+                        width: double.maxFinite,
+                        child: CupertinoButton(
+                          color: Theme.of(context).primaryColor,
+                          child: Text(
+                            'Update profile',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                          onPressed: () => updateProfile(),
+                        ),
+                      ),
+                      SizedBox(height: 10),
+                    ],
+                  ),
                 ),
               ),
             ),

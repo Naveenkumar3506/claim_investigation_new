@@ -261,6 +261,13 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  fluttertoast:
+    dependency: "direct main"
+    description:
+      name: fluttertoast
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "8.0.6"
   geolocator:
     dependency: "direct main"
     description:
@@ -288,7 +295,7 @@ packages:
       name: get
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "3.26.0"
+    version: "4.1.4"
   get_it:
     dependency: "direct main"
     description:
@@ -602,6 +609,13 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "3.0.0"
+  tapioca:
+    dependency: "direct main"
+    description:
+      name: tapioca
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "1.0.2+1"
   term_glyph:
     dependency: transitive
     description:
@@ -714,6 +728,13 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "0.2.5+1"
+  video_thumbnail_generator:
+    dependency: "direct main"
+    description:
+      name: video_thumbnail_generator
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "0.0.8"
   win32:
     dependency: transitive
     description:

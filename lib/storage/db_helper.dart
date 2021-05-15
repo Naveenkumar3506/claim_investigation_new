@@ -3,10 +3,10 @@ import 'package:claim_investigation/models/report_model.dart';
 import 'db_manager.dart';
 
 class DBHelper {
-  static Future saveCases(List<CaseModel> arrayCaseModel) async {
+  static Future saveCases(List<CaseModel> arrayCaseModel, String table) async {
     final db = DbManager.db;
     arrayCaseModel.forEach((caseModel) async {
-      await db.insert(DbManager.caseTable, caseModel.toMap());
+      await db.insert(table, caseModel.toMap(), false);
     });
   }
 
@@ -15,19 +15,28 @@ class DBHelper {
     return List<CaseModel>.from(listCases.map((x) => CaseModel.fromMap(x)));
   }
 
-  static Future updateCaseDetail(CaseModel caseModel) async {
-    await DbManager.db.update(DbManager.caseTable, 'caseId = ?',
-        [caseModel.caseId], caseModel.toMap());
+  static Future updateCaseDetail(CaseModel caseModel, String table) async {
+    await DbManager.db
+        .update(table, 'caseId = ?', [caseModel.caseId], caseModel.toMap());
   }
 
-  static Future updateCaseSyncStatus(CaseModel caseModel, int syncStatus) async {
-    await DbManager.db.update(DbManager.caseTable, 'caseId = ?',
-        [caseModel.caseId], {"syncStatus": syncStatus});
+  static Future saveCase(CaseModel caseModel, String table) async {
+    final db = DbManager.db;
+    await db.insert(table, caseModel.toMap(), true);
+  }
+
+  static Future deleteCase(CaseModel caseModel, String table) async {
+    await DbManager.db.delete(table, 'caseId = ?', [caseModel.caseId]);
+  }
+
+  static Future<List<CaseModel>> getCasesToSync() async {
+    final listCases = await DbManager.db.queryAllRows(DbManager.syncCaseTable);
+    return List<CaseModel>.from(listCases.map((x) => CaseModel.fromMap(x)));
   }
 
   static Future saveReport(ReportModel reportModel) async {
     final db = DbManager.db;
-    await db.insert(DbManager.dashBoardTable, reportModel.toMap());
+    await db.insert(DbManager.dashBoardTable, reportModel.toMap(), true);
   }
 
   static Future<ReportModel> getReport() async {

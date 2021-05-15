@@ -7,7 +7,7 @@ class AppSharedPref {
   final String PREF_USER_DATA = "USER_DATA";
   final String PREF_TOKEN_DATA = "TOKEN_DATA";
   final String PREF_LAST_SYNC_DATE = 'PREF_LAST_SYNC_DATE';
-  final String PREF_LAST_ATTN_DATE = 'PREF_LAST_ATTN_DATE';
+  final String PREF_SEL_CASE_TYPE = 'PREF_SEL_CASE_TYPE';
 
   static AppSharedPref _instance;
   static SharedPreferences _preferences;
@@ -83,17 +83,13 @@ class AppSharedPref {
     return DateTime.fromMillisecondsSinceEpoch(timestamp);
   }
 
-  /// Last attendance date
-  set lastAttendanceDate(DateTime dateTime) {
-    _saveToDisk(PREF_LAST_ATTN_DATE, dateTime.millisecondsSinceEpoch);
+  /// Type
+  set caseTypeSelected(String type) {
+    _saveToDisk(PREF_SEL_CASE_TYPE, type);
   }
 
-  DateTime get lastAttendanceDate {
-    int timestamp = _getFromDisk(PREF_LAST_ATTN_DATE);
-    if (timestamp == null) {
-      return null;
-    }
-    return DateTime.fromMillisecondsSinceEpoch(timestamp);
+  String get caseTypeSelected {
+    return _getFromDisk(PREF_SEL_CASE_TYPE);
   }
 
   void clearUserData() {

@@ -40,7 +40,7 @@ dependencies:
   flutter_image_compress: ^0.7.0
   shared_preferences: ^0.5.7+1
   get_it: ^4.0.2
-  get: ^3.25.4
+  get: ^4.1.4
   device_info: ^0.4.1+1
   encrypt: ^4.0.3
   package_info: ^0.4.3
@@ -60,6 +60,9 @@ dependencies:
   photo_view: ^0.10.2
   video_compress: ^2.1.0
   path: ^1.8.0
+  tapioca: ^1.0.2+1
+  fluttertoast: ^8.0.6
+  video_thumbnail_generator: ^0.0.8
 
 dev_dependencies:
   flutter_test:

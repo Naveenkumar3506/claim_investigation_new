@@ -11,6 +11,7 @@ import 'package:claim_investigation/providers/multipart_upload_provider.dart';
 import 'package:claim_investigation/screen/full_image_screen.dart';
 import 'package:claim_investigation/screen/pdfView_screen.dart';
 import 'package:claim_investigation/storage/db_helper.dart';
+import 'package:claim_investigation/storage/db_manager.dart';
 import 'package:claim_investigation/util/app_enum.dart';
 import 'package:claim_investigation/util/app_helper.dart';
 import 'package:claim_investigation/util/color_contants.dart';
@@ -25,7 +26,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_audio_recorder/flutter_audio_recorder.dart';
-import 'package:flutter_cached_pdfview/flutter_cached_pdfview.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
@@ -33,10 +33,13 @@ import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:signature/signature.dart';
+import 'package:tapioca/tapioca.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_thumbnail/video_thumbnail.dart';
 import 'package:path/path.dart' as path;
 import 'package:image/image.dart' as ui;
+import 'package:video_thumbnail_generator/video_thumbnail_generator.dart'
+    as thumbnail;
 
 class CaseDetailScreen extends BasePage {
   static const routeName = '/caseDetailScreen';
@@ -57,6 +60,7 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
   TextEditingController pdfName3TextController = TextEditingController();
   TextEditingController documentTextController = TextEditingController();
   io.File _imageFile,
+      _imageFile2,
       _videoFile,
       _pdfFile1,
       _pdfFile2,
@@ -69,7 +73,7 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
   Timer timer;
   FlutterAudioRecorder _recorder;
   Recording _current;
-  RecordingStatus _currentStatus = RecordingStatus.Initialized;
+  RecordingStatus _currentStatus = RecordingStatus.Unset;
   final LocalFileSystem localFileSystem = LocalFileSystem();
   AudioPlayer audioPlayer;
   final SignatureController _controller = SignatureController(
@@ -80,56 +84,70 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
   bool isNotEditable = false;
   String videoThumbnailPath;
   AudioPlayerState audioPlayerState;
+  bool isImage1Changed = false;
+  bool isImage2Changed = false;
+  bool isVideoChanged = false;
+  String folderPath = '';
 
   @override
   void initState() {
     _caseModel = Get.arguments;
     descTextController.text = _caseModel.caseDescription;
+    remarksTextController.text = _caseModel.newRemarks;
     super.initState();
-    _initAudioRecording();
+    // _initAudioRecording();
     _controller.addListener(() => print("Value changed"));
     if (_caseModel.caseStatus.toLowerCase() == "closed".toLowerCase()) {
       isNotEditable = true;
-      //
-      if (_caseModel.pdf1FilePath != null &&
-          _caseModel.pdf1FilePath.isNotEmpty) {
-        pdfName1TextController.text = 'PDF 1';
-      }
-      if (_caseModel.pdf2FilePath != null &&
-          _caseModel.pdf2FilePath.isNotEmpty) {
-        pdfName2TextController.text = 'PDF 2';
-      }
-      if (_caseModel.pdf3FilePath != null &&
-          _caseModel.pdf3FilePath.isNotEmpty) {
-        pdfName3TextController.text = 'PDF 3';
-      }
-      if (_caseModel.excelFilepath != null &&
-          _caseModel.excelFilepath.isNotEmpty) {
-        documentTextController.text = 'Excel';
-      }
+    }
+    //
+    if (_caseModel.pdf1FilePath != null && _caseModel.pdf1FilePath.isNotEmpty) {
+      pdfName1TextController.text = 'PDF 1';
+    }
+    if (_caseModel.pdf2FilePath != null && _caseModel.pdf2FilePath.isNotEmpty) {
+      pdfName2TextController.text = 'PDF 2';
+    }
+    if (_caseModel.pdf3FilePath != null && _caseModel.pdf3FilePath.isNotEmpty) {
+      pdfName3TextController.text = 'PDF 3';
+    }
+    if (_caseModel.excelFilepath != null &&
+        _caseModel.excelFilepath.isNotEmpty) {
+      documentTextController.text = 'Excel';
     }
 
-    _imageFile = io.File(_caseModel.image);
-
-    try {
-      new Future.delayed(Duration(milliseconds: 500), () async {
-        await VideoThumbnail.thumbnailFile(
-          video: Uri.encodeFull(_caseModel.videoFilePath),
-          thumbnailPath: (await getTemporaryDirectory()).path,
-          imageFormat: ImageFormat.PNG,
-          // maxHeight: 64,
-          // specify the height of the thumbnail, let the width auto-scaled to keep the source aspect ratio
-          quality: 75,
-        ).then((value) {
+    //
+    new Future.delayed(Duration(milliseconds: 50), () async {
+      var appDir = await getApplicationDocumentsDirectory();
+      if (io.Platform.isIOS) {
+        appDir = await getApplicationDocumentsDirectory();
+      } else {
+        appDir = await getExternalStorageDirectory();
+      }
+      folderPath = await _createFolder('${appDir.path}/${_caseModel.caseId}');
+      await _getSavedFiles();
+    });
+    //
+    bool _validVideoURL = Uri.parse(_caseModel.videoFilePath).isAbsolute;
+    if (_validVideoURL) {
+      try {
+        new Future.delayed(Duration(milliseconds: 500), () async {
+          showLoadingDialog();
+          Uint8List bytes = await thumbnail.VideoThumbnail.getBytes(
+              Uri.encodeFull(_caseModel.videoFilePath));
+          io.File file = io.File("$folderPath/" + "url_thumbnail.png");
+          await file.writeAsBytes(bytes);
           setState(() {
-            videoThumbnailPath = value;
+            videoThumbnailPath = file.path;
           });
+          Navigator.pop(context);
         });
-      });
-    } on Exception catch (exception) {
-      print(exception.toString());
-    } catch (error) {
-      print(error.toString());
+      } on Exception catch (exception) {
+        Navigator.pop(context);
+        print(exception.toString());
+      } catch (error) {
+        Navigator.pop(context);
+        print(error.toString());
+      }
     }
   }
 
@@ -139,15 +157,79 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
     timer?.cancel();
     audioPlayer.pause();
     audioPlayer.dispose();
+    hideKeyboard();
     super.dispose();
+  }
+
+  Future _getSavedFiles() async {
+    bool _validImageURL = Uri.parse(_caseModel.image).isAbsolute;
+    bool _validImage2URL = Uri.parse(_caseModel.image2).isAbsolute;
+    bool _validVideoURL = Uri.parse(_caseModel.videoFilePath).isAbsolute;
+    bool _validPDF1URL = Uri.parse(_caseModel.pdf1FilePath).isAbsolute;
+    bool _validPDF2URL = Uri.parse(_caseModel.pdf2FilePath).isAbsolute;
+    bool _validPDF3URL = Uri.parse(_caseModel.pdf3FilePath).isAbsolute;
+    bool _validAudioURL = Uri.parse(_caseModel.audioFilePath).isAbsolute;
+    bool _validExcelURL = Uri.parse(_caseModel.excelFilepath).isAbsolute;
+
+    if (!_validExcelURL && _caseModel.excelFilepath.isNotEmpty) {
+      _documentFile = io.File(folderPath + "/${_caseModel.excelFilepath}");
+      documentTextController.text = 'Excel';
+    }
+    //
+    if (!_validImageURL && _caseModel.image.isNotEmpty) {
+      _imageFile = io.File("$folderPath/${_caseModel.image}");
+    }
+    //
+    if (!_validImage2URL && _caseModel.image2.isNotEmpty) {
+      _imageFile2 = io.File("$folderPath/${_caseModel.image2}");
+    }
+    //
+    if (!_validAudioURL && _caseModel.audioFilePath.isNotEmpty) {
+      _audioFile =
+          localFileSystem.file("$folderPath/${_caseModel.audioFilePath}");
+    }
+    //
+    if (!_validVideoURL && _caseModel.videoFilePath.isNotEmpty) {
+      _videoFile = io.File("$folderPath/${_caseModel.videoFilePath}");
+      //
+      new Future.delayed(Duration(milliseconds: 5), () async {
+        setState(() {
+          videoThumbnailPath = folderPath + '/thumbnail.png';
+        });
+      });
+    }
+    if (!_validPDF1URL && _caseModel.pdf1FilePath.isNotEmpty) {
+      _pdfFile1 = io.File("$folderPath/${_caseModel.pdf1FilePath}");
+      String basename = path.basename(_pdfFile1.path);
+      setState(() {
+        _pdfFileName1 = basename;
+        pdfName1TextController.text = 'PDF 1';
+      });
+    }
+    if (!_validPDF2URL && _caseModel.pdf2FilePath.isNotEmpty) {
+      _pdfFile2 = io.File("$folderPath/${_caseModel.pdf2FilePath}");
+      String basename = path.basename(_pdfFile2.path);
+      setState(() {
+        _pdfFileName2 = basename;
+        pdfName2TextController.text = 'PDF 2';
+      });
+    }
+    //
+    if (!_validPDF3URL && _caseModel.pdf3FilePath.isNotEmpty) {
+      _pdfFile3 = io.File("$folderPath/${_caseModel.pdf3FilePath}");
+      String basename = path.basename(_pdfFile3.path);
+      setState(() {
+        _pdfFileName3 = basename;
+        pdfName3TextController.text = 'PDF 3';
+      });
+    }
+    setState(() {});
   }
 
   Future _initAudioRecording() async {
     try {
       if (await FlutterAudioRecorder.hasPermissions) {
-        String customPath = '/flutter_audio_recorder_';
-        io.Directory appDocDirectory;
-        appDocDirectory = await getApplicationDocumentsDirectory();
+        String customPath = '/audio_recorder_';
 //         if (io.Platform.isIOS) {
 //           appDocDirectory = await getApplicationDocumentsDirectory();
 //         } else {
@@ -155,7 +237,7 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
 //         }
 
         // can add extension like ".mp4" ".wav" ".m4a" ".aac"
-        customPath = appDocDirectory.path +
+        customPath = folderPath +
             customPath +
             DateTime.now().millisecondsSinceEpoch.toString();
 
@@ -260,10 +342,14 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
         audioPlayerState = state;
       });
     });
+    bool _validAudioURL = Uri.parse(_caseModel.audioFilePath).isAbsolute;
     if (_caseModel.audioFilePath != null &&
-        _caseModel.audioFilePath.isNotEmpty) {
+        _caseModel.audioFilePath.isNotEmpty &&
+        _validAudioURL) {
       await audioPlayer.play(Uri.encodeFull(_caseModel.audioFilePath));
-    } else {
+    } else if (_audioFile != null) {
+      await audioPlayer.play(_audioFile.path, isLocal: true);
+    } else if (_current != null) {
       await audioPlayer.play(_current.path, isLocal: true);
     }
   }
@@ -315,6 +401,15 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
     if (_imageFile != null) {
       return await Provider.of<MultiPartUploadProvider>(context, listen: false)
           .uploadFile(_imageFile, MimeMediaType.image, _caseModel, 'image');
+    } else {
+      return Future.value(true);
+    }
+  }
+
+  Future<bool> uploadImage2() async {
+    if (_imageFile2 != null) {
+      return await Provider.of<MultiPartUploadProvider>(context, listen: false)
+          .uploadFile(_imageFile2, MimeMediaType.image, _caseModel, 'image2');
     } else {
       return Future.value(true);
     }
@@ -387,6 +482,7 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
     if (isNotEditable) {
       return;
     }
+    showLoadingDialog();
     await _determinePosition().then((position) async {
       if (position != null) {
         print('got');
@@ -395,12 +491,62 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
         _caseModel.longitude = position.longitude.toStringAsFixed(5);
         _caseModel.newRemarks = remarksTextController.text;
 
-        showLoadingDialog();
-        var uploadCount = 0;
-        var resultCount = 0;
+        //
+        if (isImage1Changed) {
+          ui.Image originalImage = ui.decodeImage(_imageFile.readAsBytesSync());
+          ui.drawString(
+            originalImage,
+            ui.arial_48,
+            originalImage.width - 500,
+            originalImage.height - 100,
+            '${_caseModel.latitude}, ${_caseModel.longitude}',
+          );
+          // Store the watermarked image to a File
+          List<int> wmImage = ui.encodePng(originalImage);
+          await _createWaterMarkFileFromString(wmImage).then((value) {
+            _imageFile = value;
+          });
+        }
+        //
+        if (isImage2Changed) {
+          ui.Image originalImage =
+              ui.decodeImage(_imageFile2.readAsBytesSync());
+          ui.drawString(
+            originalImage,
+            ui.arial_48,
+            originalImage.width - 500,
+            originalImage.height - 100,
+            '${_caseModel.latitude}, ${_caseModel.longitude}',
+          );
+          // Store the watermarked image to a File
+          List<int> wmImage = ui.encodePng(originalImage);
+          await _createWaterMarkFileFromString(wmImage).then((value) {
+            _imageFile2 = value;
+          });
+        }
+        //
+        if (_videoFile != null && isVideoChanged) {
+          final tapiocaBalls = [
+            TapiocaBall.textOverlay(
+                '${_caseModel.latitude}, ${_caseModel.longitude}',
+                100,
+                10,
+                100,
+                Color(0xffffffff)),
+          ];
+          final savedPath = '$folderPath/video.mp4';
+          final cup = Cup(Content(_videoFile.path), tapiocaBalls);
+          await cup.suckUp(savedPath).then((_) async {
+            print("finish processing");
+            String fileName = path.basename(savedPath);
+            _caseModel.videoFilePath = fileName;
+            _videoFile = io.File(savedPath);
+          });
+        }
 
         final results = await Future.wait([
           uploadImage(),
+          uploadImage2(),
           uploadPDF1(),
           uploadPDF2(),
           uploadPDF3(),
@@ -410,7 +556,9 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
           uploadVideo()
         ]);
 
-        /* if (_imageFile != null) {
+        /* var uploadCount = 0;
+          var resultCount = 0;
+         if (_imageFile != null) {
           uploadCount++;
           await Provider.of<MultiPartUploadProvider>(context, listen: false)
               .uploadFile(_imageFile, MimeMediaType.image, _caseModel, 'image')
@@ -534,94 +682,177 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
               'Oops, uploading attachments failed. Please try again');
         }
       } else {
+        Navigator.pop(context);
         showErrorToast('Oops, unable to get your location. Please try again');
       }
     }, onError: (error) {
+      Navigator.pop(context);
       showErrorToast(error.toString());
     });
   }
 
   Future saveDraft() async {
-    showLoadingDialog();
-
+    showLoadingDialog(hint: 'Saving data...');
     await _determinePosition().then((position) async {
       if (position != null) {
         _caseModel.latitude = position.latitude.toStringAsFixed(5);
         _caseModel.longitude = position.longitude.toStringAsFixed(5);
         //
-        ui.Image originalImage = ui.decodeImage(_imageFile.readAsBytesSync());
-        ui.drawString(
-          originalImage,
-          ui.arial_48,
-          originalImage.width - 500,
-          originalImage.height - 100,
-          '${_caseModel.latitude}, ${_caseModel.longitude}',
-        );
-        // Store the watermarked image to a File
-        List<int> wmImage = ui.encodePng(originalImage);
-        await _createWaterMarkFileFromString(wmImage).then((value) {
-          _imageFile = value;
-        });
+        if (isImage1Changed) {
+          ui.Image originalImage = ui.decodeImage(_imageFile.readAsBytesSync());
+          ui.drawString(
+            originalImage,
+            ui.arial_24,
+            originalImage.width - 500,
+            originalImage.height - 100,
+            '${_caseModel.latitude}, ${_caseModel.longitude}',
+          );
+          // Store the watermarked image to a File
+          List<int> wmImage = ui.encodePng(originalImage);
+          await _createWaterMarkFileFromString(wmImage).then((value) {
+            _imageFile = value;
+          });
+        }
+        //
+        if (isImage2Changed) {
+          ui.Image originalImage =
+              ui.decodeImage(_imageFile2.readAsBytesSync());
+          ui.drawString(
+            originalImage,
+            ui.arial_48,
+            originalImage.width - 500,
+            originalImage.height - 100,
+            '${_caseModel.latitude}, ${_caseModel.longitude}',
+          );
+          // Store the watermarked image to a File
+          List<int> wmImage = ui.encodePng(originalImage);
+          await _createWaterMarkFileFromString(wmImage).then((value) {
+            _imageFile2 = value;
+          });
+        }
+        //
+        if (_videoFile != null && isVideoChanged) {
+          final tapiocaBalls = [
+            TapiocaBall.textOverlay(
+                '${_caseModel.latitude}, ${_caseModel.longitude}',
+                100,
+                10,
+                100,
+                Color(0xffffffff)),
+          ];
+          final savedPath = '$folderPath/video.mp4';
+          final cup = Cup(Content(_videoFile.path), tapiocaBalls);
+          await cup.suckUp(savedPath).then((_) async {
+            print("finish processing");
+            String fileName = path.basename(savedPath);
+            _caseModel.videoFilePath = fileName;
+          });
+        }
       }
     });
     _caseModel.caseDescription = descTextController.text;
     _caseModel.newRemarks = remarksTextController.text;
 
     if (_imageFile != null) {
-      io.File savedFile = await _saveFileToAppDirectory(_imageFile);
-      _caseModel.image = savedFile.path;
+      // io.File savedFile =
+      //     await _saveFileToAppDirectory(_imageFile, 'image.png');
+      String fileName = path.basename(_imageFile.path);
+      _caseModel.image = fileName;
     }
 
-    if (_videoFile != null) {
-      io.File savedFile = await _saveFileToAppDirectory(_videoFile);
-      _caseModel.videoFilePath = savedFile.path;
+    if (_imageFile2 != null) {
+      io.File savedFile =
+          await _saveFileToAppDirectory(_imageFile2, 'image2.png');
+      String fileName = path.basename(savedFile.path);
+      _caseModel.image2 = fileName;
     }
 
     if (_pdfFile1 != null) {
-      io.File savedFile = await _saveFileToAppDirectory(_videoFile);
-      _caseModel.pdf1FilePath = savedFile.path;
+      io.File savedFile = await _saveFileToAppDirectory(_pdfFile1, 'pdf1.pdf');
+      String fileName = path.basename(savedFile.path);
+      _caseModel.pdf1FilePath = fileName;
     }
 
     if (_pdfFile2 != null) {
-      io.File savedFile = await _saveFileToAppDirectory(_pdfFile2);
-      _caseModel.pdf2FilePath = savedFile.path;
+      io.File savedFile = await _saveFileToAppDirectory(_pdfFile2, 'pdf2.pdf');
+      String fileName = path.basename(savedFile.path);
+      _caseModel.pdf2FilePath = fileName;
     }
 
     if (_pdfFile3 != null) {
-      io.File savedFile = await _saveFileToAppDirectory(_pdfFile3);
-      _caseModel.pdf3FilePath = savedFile.path;
+      io.File savedFile = await _saveFileToAppDirectory(_pdfFile3, 'pdf3.pdf');
+      String fileName = path.basename(savedFile.path);
+      _caseModel.pdf3FilePath = fileName;
     }
 
     if (_documentFile != null) {
-      io.File savedFile = await _saveFileToAppDirectory(_documentFile);
-      _caseModel.excelFilepath = savedFile.path;
+      final extension = path.extension(_documentFile.path); // '.dart'
+      io.File savedFile =
+          await _saveFileToAppDirectory(_documentFile, 'excel$extension');
+      String fileName = path.basename(savedFile.path);
+      _caseModel.excelFilepath = fileName;
     }
 
-    await DBHelper.updateCaseDetail(_caseModel);
+    if (_signFile != null) {
+      // io.File savedFile = await _saveFileToAppDirectory(_signFile, 'sign.png');
+      String fileName = path.basename(_signFile.path);
+      _caseModel.signatureFilePath = fileName;
+    }
+
+    if (_audioFile != null) {
+      // final extension = path.extension(_audioFile.path); // '.dart'
+      // io.File savedFile = await _saveFileToAppDirectory(_audioFile, 'audio.$extension');
+      String fileName = path.basename(_audioFile.path);
+      _caseModel.audioFilePath = fileName;
+    }
+
+    if (_thumbnail != null) {
+      await _saveThumbnail(_thumbnail);
+    }
+
+    await DBHelper.saveCase(_caseModel, DbManager.syncCaseTable);
+    //
+    if (pref.caseTypeSelected != null && pref.caseTypeSelected == 'All') {
+      await DBHelper.updateCaseDetail(_caseModel, DbManager.caseTable);
+    } else if (pref.caseTypeSelected != null &&
+        pref.caseTypeSelected == 'PIV/PRV/LIVE count') {
+      await DBHelper.updateCaseDetail(_caseModel, DbManager.PIVCaseTable);
+    } else if (pref.caseTypeSelected != null &&
+        pref.caseTypeSelected == "New") {
+      await DBHelper.updateCaseDetail(_caseModel, DbManager.NewCaseTable);
+    } else if (pref.caseTypeSelected != null &&
+        pref.caseTypeSelected == "Claim Document Pickup") {
+      await DBHelper.updateCaseDetail(_caseModel, DbManager.CDPCaseTable);
+    } else if (pref.caseTypeSelected != null &&
+        pref.caseTypeSelected == "Closed") {
+      await DBHelper.updateCaseDetail(_caseModel, DbManager.ClosedCaseTable);
+    } else if (pref.caseTypeSelected != null &&
+        pref.caseTypeSelected == "Actioned by Investigator") {
+      await DBHelper.updateCaseDetail(
+          _caseModel, DbManager.InvestigatorCaseTable);
+    }
+
     Navigator.pop(context);
   }
 
-  Future<io.File> _createFileFromString(Uint8List bytes) async {
-    String dir = (await getApplicationDocumentsDirectory()).path;
-    io.File file = io.File(
-        "$dir/" + DateTime.now().millisecondsSinceEpoch.toString() + ".png");
+  Future<io.File> _createSignFileFromString(Uint8List bytes) async {
+    io.File file = io.File("$folderPath/" + "sign.png");
     await file.writeAsBytes(bytes);
     return file;
   }
 
-  Future<io.File> _saveFileToAppDirectory(io.File file) async {
-    final appDir = await getApplicationDocumentsDirectory();
-    String fileName = path.basename(file.path);
-    final folderPath =
-        await _createFolder('${appDir.path}/${_caseModel.caseId}');
-    return await _imageFile.copy('$folderPath/$fileName');
+  Future<io.File> _saveThumbnail(Uint8List bytes) async {
+    io.File file = io.File("$folderPath/" + "thumbnail.png");
+    await file.writeAsBytes(bytes);
+    return file;
+  }
+
+  Future<io.File> _saveFileToAppDirectory(io.File file, String fileName) async {
+    return await file.copy('$folderPath/$fileName');
   }
 
   Future<io.File> _createWaterMarkFileFromString(Uint8List bytes) async {
-    final appDir = await getApplicationDocumentsDirectory();
-    final folderPath =
-        await _createFolder('${appDir.path}/${_caseModel.caseId}');
-    io.File file = io.File("$folderPath/" + "watermark.png");
+    io.File file = io.File("$folderPath/" + "image.png");
     await file.writeAsBytes(bytes);
     return file;
   }
@@ -1042,9 +1273,16 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                 isNotEditable
                     ? SizedBox()
                     : FlatButton(
-                        onPressed: () {
+                        onPressed: () async {
                           onStopAudio();
                           switch (_currentStatus) {
+                            case RecordingStatus.Unset:
+                              {
+                                await _initAudioRecording().then((value) {
+                                  _startAudioRecording();
+                                });
+                                break;
+                              }
                             case RecordingStatus.Initialized:
                               {
                                 _startAudioRecording();
@@ -1162,6 +1400,10 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                             pdfName1TextController.text = "";
                             pdfName2TextController.text = "";
                             pdfName3TextController.text = "";
+                            //
+                            _caseModel.pdf1FilePath = null;
+                            _caseModel.pdf2FilePath = null;
+                            _caseModel.pdf3FilePath = null;
                           });
                         },
                         child: Icon(
@@ -1195,6 +1437,8 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                                     _pdfFileName1 = '';
                                     //
                                     pdfName1TextController.text = "";
+                                    //
+                                    _caseModel.pdf1FilePath = null;
                                   });
                                 },
                                 child: Icon(
@@ -1210,13 +1454,18 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                 ),
                 ElevatedButton(
                   onPressed: () async {
-                    if (isNotEditable) {
-                      if (_caseModel.pdf1FilePath != null) {
-                        Get.toNamed(PDFViewerCachedFromUrl.routeName,
-                            arguments: {"url": _caseModel.pdf1FilePath});
-                      }
+                    // if (isNotEditable) {
+                    if (_pdfFile1 != null) {
+                      Get.toNamed(PDFViewerCachedFromUrl.routeName,
+                          arguments: {"path": _pdfFile1.path});
+                      return;
+                    } else if (_caseModel.pdf1FilePath != null &&
+                        Uri.parse(_caseModel.pdf1FilePath).isAbsolute) {
+                      Get.toNamed(PDFViewerCachedFromUrl.routeName,
+                          arguments: {"url": _caseModel.pdf1FilePath});
                       return;
                     }
+                    //  }
                     FilePickerResult result = await FilePicker.platform
                         .pickFiles(
                             type: FileType.custom,
@@ -1238,8 +1487,7 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                       // User canceled the picker
                     }
                   },
-                  child: Text(isNotEditable &&
-                          _caseModel.pdf1FilePath != null &&
+                  child: Text(_caseModel.pdf1FilePath != null &&
                           _caseModel.pdf1FilePath.isNotEmpty
                       ? 'View'
                       : 'Select'),
@@ -1269,6 +1517,8 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                                     _pdfFileName2 = '';
                                     //
                                     pdfName2TextController.text = "";
+                                    //
+                                    _caseModel.pdf2FilePath = null;
                                   });
                                 },
                                 child: Icon(
@@ -1284,13 +1534,18 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                 ),
                 ElevatedButton(
                   onPressed: () async {
-                    if (isNotEditable) {
-                      if (_caseModel.pdf2FilePath != null) {
-                        Get.toNamed(PDFViewerCachedFromUrl.routeName,
-                            arguments: {"url": _caseModel.pdf2FilePath});
-                      }
+                    // if (isNotEditable) {
+                    if (_pdfFile2 != null) {
+                      Get.toNamed(PDFViewerCachedFromUrl.routeName,
+                          arguments: {"path": _pdfFile2.path});
+                      return;
+                    } else if (_caseModel.pdf2FilePath != null &&
+                        Uri.parse(_caseModel.pdf2FilePath).isAbsolute) {
+                      Get.toNamed(PDFViewerCachedFromUrl.routeName,
+                          arguments: {"url": _caseModel.pdf2FilePath});
                       return;
                     }
+                    // }
                     FilePickerResult result = await FilePicker.platform
                         .pickFiles(
                             type: FileType.custom,
@@ -1312,8 +1567,7 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                       // User canceled the picker
                     }
                   },
-                  child: Text(isNotEditable &&
-                          _caseModel.pdf2FilePath != null &&
+                  child: Text(_caseModel.pdf2FilePath != null &&
                           _caseModel.pdf2FilePath.isNotEmpty
                       ? 'View'
                       : 'Select'),
@@ -1343,6 +1597,8 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                                     _pdfFileName3 = '';
                                     //
                                     pdfName3TextController.text = "";
+                                    //
+                                    _caseModel.pdf3FilePath = null;
                                   });
                                 },
                                 child: Icon(
@@ -1358,13 +1614,18 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                 ),
                 ElevatedButton(
                   onPressed: () async {
-                    if (isNotEditable) {
-                      if (_caseModel.pdf3FilePath != null) {
-                        Get.toNamed(PDFViewerCachedFromUrl.routeName,
-                            arguments: {"url": _caseModel.pdf3FilePath});
-                      }
+                    // if (isNotEditable) {
+                    if (_pdfFile3 != null) {
+                      Get.toNamed(PDFViewerCachedFromUrl.routeName,
+                          arguments: {"path": _pdfFile3.path});
+                      return;
+                    } else if (_caseModel.pdf3FilePath != null &&
+                        Uri.parse(_caseModel.pdf3FilePath).isAbsolute) {
+                      Get.toNamed(PDFViewerCachedFromUrl.routeName,
+                          arguments: {"url": _caseModel.pdf3FilePath});
                       return;
                     }
+                    // }
                     FilePickerResult result = await FilePicker.platform
                         .pickFiles(
                             type: FileType.custom,
@@ -1387,8 +1648,7 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                       // User canceled the picker
                     }
                   },
-                  child: Text(isNotEditable &&
-                          _caseModel.pdf3FilePath != null &&
+                  child: Text(_caseModel.pdf3FilePath != null &&
                           _caseModel.pdf3FilePath.isNotEmpty
                       ? 'View'
                       : 'Select'),
@@ -1450,12 +1710,14 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                     }
                     return;
                   }
+                  hideKeyboard();
                   imagePickerDialog(() async {
                     //camera
                     await getImageFile(ImageSource.camera).then((value) async {
                       if (value != null) {
                         setState(() {
                           _imageFile = value;
+                          isImage1Changed = true;
                         });
                       }
                     });
@@ -1485,6 +1747,114 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                             width: SizeConfig.screenWidth,
                             child: CachedNetworkImage(
                               imageUrl: _caseModel.image,
+                              placeholder: (context, url) => SizedBox(width: 30, height: 30, child: CircularProgressIndicator()),
+                              errorWidget: (context, url, error) => Icon(Icons.error),
+                              fit: BoxFit.cover,
+                            ),
+                          )
+                        : Stack(alignment: Alignment.center, children: [
+                            Container(
+                              height: SizeConfig.screenHeight * .3,
+                              decoration: BoxDecoration(
+                                  border: Border.all(color: Colors.grey)),
+                            ),
+                            SizedBox(
+                              height: 80,
+                              width: 80,
+                              child: Image.asset(
+                                'assets/images/ic_image_upload_placeholder.png',
+                              ),
+                            ),
+                            Positioned(
+                                top: (SizeConfig.screenHeight * .3) / 2 + 60,
+                                child: Text("Upload Image"))
+                          ]),
+              ),
+            ],
+          ),
+          SizedBox(
+            height: 20,
+          ),
+          SizedBox(
+            width: SizeConfig.screenWidth,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'UPLOAD IMAGE 2',
+                  style: Theme.of(context).textTheme.bodyText1,
+                ),
+                _imageFile2 != null
+                    ? InkWell(
+                        onTap: () {
+                          setState(() {
+                            _imageFile2 = null;
+                          });
+                        },
+                        child: Icon(
+                          Icons.delete,
+                          color: Colors.red,
+                        ),
+                      )
+                    : Container()
+              ],
+            ),
+          ),
+          SizedBox(
+            height: 10,
+          ),
+          Wrap(
+            children: [
+              InkWell(
+                onTap: () {
+                  if (isNotEditable) {
+                    if (_caseModel.image2 != null &&
+                        _caseModel.image2.isNotEmpty) {
+                      Get.toNamed(FullImageViewScreen.routeName, arguments: {
+                        'IMAGE': _caseModel.image2,
+                      });
+                    }
+                    return;
+                  }
+                  hideKeyboard();
+                  imagePickerDialog(() async {
+                    //camera
+                    await getImageFile(ImageSource.camera).then((value) async {
+                      if (value != null) {
+                        setState(() {
+                          _imageFile2 = value;
+                          isImage2Changed = true;
+                        });
+                      }
+                    });
+                  }, () async {
+                    //gallery
+                    await getImageFile(ImageSource.gallery).then((value) {
+                      if (value != null) {
+                        setState(() {
+                          _imageFile2 = value;
+                        });
+                      }
+                    });
+                  });
+                },
+                child: _imageFile2 != null
+                    ? SizedBox(
+                        height: SizeConfig.screenHeight * .3,
+                        width: SizeConfig.screenWidth,
+                        child: Image.file(
+                          _imageFile2,
+                          fit: BoxFit.cover,
+                        ),
+                      )
+                    : _caseModel.image2 != null && _caseModel.image2.isNotEmpty
+                        ? SizedBox(
+                            height: SizeConfig.screenHeight * .3,
+                            width: SizeConfig.screenWidth,
+                            child: CachedNetworkImage(
+                              imageUrl: _caseModel.image2,
+                              placeholder: (context, url) => SizedBox(width: 30, height: 30, child: CircularProgressIndicator()),
+                              errorWidget: (context, url, error) => Icon(Icons.error),
                               fit: BoxFit.cover,
                             ),
                           )
@@ -1525,6 +1895,7 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                         onTap: () {
                           setState(() {
                             _videoFile = null;
+                            videoThumbnailPath = null;
                           });
                         },
                         child: Icon(
@@ -1546,6 +1917,7 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                   if (isNotEditable) {
                     return;
                   }
+                  hideKeyboard();
                   videoPickerDialog(() async {
                     //camera
                     await getVideoFile(ImageSource.camera).then((file) async {
@@ -1558,6 +1930,7 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                         );
                         setState(() {
                           _videoFile = file;
+                          isVideoChanged = true;
                         });
                       }
                     });
@@ -1578,8 +1951,7 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                     });
                   });
                 },
-                child: videoThumbnailPath != null &&
-                        videoThumbnailPath.isNotEmpty
+                child: _videoFile != null && videoThumbnailPath != null
                     ? SizedBox(
                         height: SizeConfig.screenHeight * .3,
                         width: SizeConfig.screenWidth,
@@ -1608,34 +1980,20 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                           ],
                         ),
                       )
-                    : _videoFile == null
-                        ? Stack(alignment: Alignment.center, children: [
-                            Container(
-                              height: SizeConfig.screenHeight * .3,
-                              decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.grey)),
-                            ),
-                            SizedBox(
-                              height: 80,
-                              width: 80,
-                              child: Image.asset(
-                                'assets/images/ic_video_upload_placeholder.png',
-                              ),
-                            ),
-                            Positioned(
-                                top: (SizeConfig.screenHeight * .3) / 2 + 60,
-                                child: Text("Upload Video"))
-                          ])
-                        : SizedBox(
+                    : videoThumbnailPath != null
+                        ? SizedBox(
                             height: SizeConfig.screenHeight * .3,
                             width: SizeConfig.screenWidth,
                             child: Stack(
                               alignment: Alignment.center,
                               children: [
-                                Image.memory(
-                                  _thumbnail,
-                                  fit: BoxFit.fill,
-                                ),
+                                // Image.file(
+                                //   io.File(videoThumbnailPath),
+                                //   fit: BoxFit.fill,
+                                // ),
+                                Image(
+                                    image:
+                                        FileImage(io.File(videoThumbnailPath))),
                                 InkWell(
                                   child: Icon(
                                     Icons.play_circle_filled_sharp,
@@ -1644,12 +2002,59 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                                   ),
                                   onTap: () {
                                     Get.toNamed(VideoPlayerScreen.routeName,
-                                        arguments: {'file': _videoFile});
+                                        arguments: {
+                                          'file': _videoFile,
+                                          'videoURL': Uri.encodeFull(
+                                              _caseModel.videoFilePath)
+                                        });
                                   },
                                 ),
                               ],
                             ),
-                          ),
+                          )
+                        : _thumbnail != null
+                            ? SizedBox(
+                                height: SizeConfig.screenHeight * .3,
+                                width: SizeConfig.screenWidth,
+                                child: Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    Image.memory(
+                                      _thumbnail,
+                                      fit: BoxFit.fill,
+                                    ),
+                                    InkWell(
+                                      child: Icon(
+                                        Icons.play_circle_filled_sharp,
+                                        color: Theme.of(context).primaryColor,
+                                        size: 70,
+                                      ),
+                                      onTap: () {
+                                        Get.toNamed(VideoPlayerScreen.routeName,
+                                            arguments: {'file': _videoFile});
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : Stack(alignment: Alignment.center, children: [
+                                Container(
+                                  height: SizeConfig.screenHeight * .3,
+                                  decoration: BoxDecoration(
+                                      border: Border.all(color: Colors.grey)),
+                                ),
+                                SizedBox(
+                                  height: 80,
+                                  width: 80,
+                                  child: Image.asset(
+                                    'assets/images/ic_video_upload_placeholder.png',
+                                  ),
+                                ),
+                                Positioned(
+                                    top:
+                                        (SizeConfig.screenHeight * .3) / 2 + 60,
+                                    child: Text("Upload Video"))
+                              ]),
               )
             ],
           ),
@@ -1691,6 +2096,7 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
     if (isNotEditable) {
       return;
     }
+    hideKeyboard();
     showDialog(
         context: context,
         builder: (BuildContext context) {
@@ -1734,7 +2140,7 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                                 await _controller.toPngBytes();
                             if (data != null) {
                               // _signFile = io.File.fromRawPath(data);
-                              _signFile = await _createFileFromString(data);
+                              _signFile = await _createSignFileFromString(data);
                               print(_signFile.path);
                               setState(() {});
                             }
@@ -1783,6 +2189,7 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                         onTap: () {
                           setState(() {
                             _documentFile = null;
+                            documentTextController.text = null;
                           });
                         },
                         child: Icon(
