@@ -114,6 +114,9 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
         _caseModel.excelFilepath.isNotEmpty) {
       documentTextController.text = 'Excel';
     }
+    if (_caseModel.remarks != null && _caseModel.remarks.isNotEmpty) {
+      remarksTextController.text = _caseModel.remarks;
+    }
 
     //
     new Future.delayed(Duration(milliseconds: 50), () async {
@@ -520,7 +523,7 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
           );
           // Store the watermarked image to a File
           List<int> wmImage = ui.encodePng(originalImage);
-          await _createWaterMarkFileFromString(wmImage).then((value) {
+          await _createWaterMarkFile2FromString(wmImage).then((value) {
             _imageFile2 = value;
           });
         }
@@ -726,7 +729,7 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
           );
           // Store the watermarked image to a File
           List<int> wmImage = ui.encodePng(originalImage);
-          await _createWaterMarkFileFromString(wmImage).then((value) {
+          await _createWaterMarkFile2FromString(wmImage).then((value) {
             _imageFile2 = value;
           });
         }
@@ -853,6 +856,12 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
 
   Future<io.File> _createWaterMarkFileFromString(Uint8List bytes) async {
     io.File file = io.File("$folderPath/" + "image.png");
+    await file.writeAsBytes(bytes);
+    return file;
+  }
+
+  Future<io.File> _createWaterMarkFile2FromString(Uint8List bytes) async {
+    io.File file = io.File("$folderPath/" + "image2.png");
     await file.writeAsBytes(bytes);
     return file;
   }

@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:claim_investigation/base/base_page.dart';
+import 'package:claim_investigation/models/user_model.dart';
 import 'package:claim_investigation/providers/auth_provider.dart';
 import 'package:claim_investigation/providers/claim_provider.dart';
 import 'package:claim_investigation/screen/edit_profile_screen.dart';
@@ -8,6 +11,7 @@ import 'package:claim_investigation/util/size_constants.dart';
 import 'package:claim_investigation/widgets/adaptive_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 
 import 'change_password_screen.dart';
@@ -20,6 +24,31 @@ class ProfileScreen extends BasePage {
 }
 
 class _ProfileScreenState extends BaseState<ProfileScreen> {
+  File _imageFile;
+  UserModel _userModel;
+
+  @override
+  void initState() {
+    if (pref.user != null) {
+      _userModel = pref.user;
+    }
+    new Future.delayed(Duration(milliseconds: 50), () async {
+      var appDir = await getApplicationDocumentsDirectory();
+      if (Platform.isIOS) {
+        appDir = await getApplicationDocumentsDirectory();
+      } else {
+        appDir = await getExternalStorageDirectory();
+      }
+      bool _validImageURL = Uri.parse(_userModel.userImage).isAbsolute;
+      if (!_validImageURL) {
+        setState(() {
+          _imageFile = File("${appDir.path}/${_userModel.userImage}");
+        });
+      }
+    });
+    super.initState();
+  }
+
   void _showLogoutAlert() {
     showAdaptiveAlertDialog(
         context: context,
@@ -54,76 +83,84 @@ class _ProfileScreenState extends BaseState<ProfileScreen> {
           ),
         ],
       ),
-      body: Consumer<AuthProvider>(
-          builder: (ctx, auth, _) {
-          return ListView(
-            children: [
-              Container(
-                padding: EdgeInsetsDirectional.only(top: 15.0),
-                width: double.maxFinite,
-                height: appHelper.isTablet(context)
-                    ? SizeConfig.screenWidth * 0.5
-                    : SizeConfig.screenHeight * 0.32,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    CircleAvatar(
-                      backgroundColor: Colors.white,
-                      radius: SizeConfig.screenHeight * 0.07,
-                      backgroundImage: pref.user.userImage == null ||
-                          pref.user.userImage.isEmpty
-                          ? AssetImage('assets/images/ic_profile_placeholder.jpg')
-                          : CachedNetworkImageProvider(pref.user.userImage),
+      body: Consumer<AuthProvider>(builder: (ctx, auth, _) {
+        return ListView(
+          children: [
+            Container(
+              padding: EdgeInsetsDirectional.only(top: 15.0),
+              width: double.maxFinite,
+              height: appHelper.isTablet(context)
+                  ? SizeConfig.screenWidth * 0.5
+                  : SizeConfig.screenHeight * 0.32,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  CircleAvatar(
+                    backgroundColor: Colors.white,
+                    radius: SizeConfig.screenHeight * 0.07,
+                    child: _imageFile != null
+                        ? ClipOval(
+                            child: Image.file(
+                              _imageFile,
+                              width: 70,
+                              height: 70,
+                              fit: BoxFit.cover,
+                            ),
+                          )
+                        : null,
+                    backgroundImage: pref.user.userImage == null ||
+                            pref.user.userImage.isEmpty
+                        ? AssetImage('assets/images/ic_profile_placeholder.jpg')
+                        : CachedNetworkImageProvider(pref.user.userImage),
+                  ),
+                  SizedBox(
+                    height: 15,
+                  ),
+                  Text(
+                    pref.user.username,
+                    style: Theme.of(context).textTheme.bodyText2,
+                  ),
+                  Text(
+                    pref.user.userEmail != null ? pref.user.userEmail : '',
+                    style: TextStyle(color: Colors.grey, fontSize: 13.0),
+                  ),
+                  SizedBox(
+                    height: 5,
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      Get.toNamed(EditProfileScreen.routeName);
+                    },
+                    child: Text(
+                      'Edit Profile',
+                      style: TextStyle(color: primaryColor, fontSize: 13.0),
                     ),
-                    SizedBox(
-                      height: 15,
-                    ),
-                    Text(
-                      pref.user.username,
-                      style: Theme.of(context).textTheme.bodyText2,
-                    ),
-                    Text(
-                      pref.user.userEmail != null ? pref.user.userEmail : '',
-                      style: TextStyle(color: Colors.grey, fontSize: 13.0),
-                    ),
-                    SizedBox(
-                      height: 5,
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        Get.toNamed(EditProfileScreen.routeName);
-                      },
-                      child: Text(
-                        'Edit Profile',
-                        style: TextStyle(color: primaryColor, fontSize: 13.0),
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              SizedBox(
-                height: 10,
-                child: Container(
-                  color: veryLightGrey,
-                ),
+            ),
+            SizedBox(
+              height: 10,
+              child: Container(
+                color: veryLightGrey,
               ),
-              ListTile(
-                leading: Icon(
-                  Icons.lock,
-                  color: primaryColor,
-                ),
-                title: Text(
-                  'Change password',
-                  style: TextStyle(color: Colors.black),
-                ),
-                onTap: () {
-                  Get.toNamed(ChangePasswordScreen.routeName);
-                },
+            ),
+            ListTile(
+              leading: Icon(
+                Icons.lock,
+                color: primaryColor,
               ),
-            ],
-          );
-        }
-      ),
+              title: Text(
+                'Change password',
+                style: TextStyle(color: Colors.black),
+              ),
+              onTap: () {
+                Get.toNamed(ChangePasswordScreen.routeName);
+              },
+            ),
+          ],
+        );
+      }),
     );
   }
 }

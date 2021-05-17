@@ -12,6 +12,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:modal_progress_hud/modal_progress_hud.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 
 class EditProfileScreen extends BasePage {
@@ -42,6 +43,23 @@ class _EditProfileScreenState extends BaseState<EditProfileScreen> {
       _emailTextController.text = _userModel.userEmail;
       _phoneTextController.text = _userModel.mobileNumber;
     }
+
+    //
+    new Future.delayed(Duration(milliseconds: 50), () async {
+      var appDir = await getApplicationDocumentsDirectory();
+      if (Platform.isIOS) {
+        appDir = await getApplicationDocumentsDirectory();
+      } else {
+        appDir = await getExternalStorageDirectory();
+      }
+      bool _validImageURL = Uri.parse(_userModel.userImage).isAbsolute;
+      if (!_validImageURL) {
+        setState(() {
+          _imageFile = File("${appDir.path}/${_userModel.userImage}");
+        });
+      }
+    });
+
     super.initState();
   }
 
@@ -67,18 +85,25 @@ class _EditProfileScreenState extends BaseState<EditProfileScreen> {
         _userModel.fullName = _fullNameTextController.text.trim();
         _userModel.userEmail = _emailTextController.text.trim();
         _userModel.mobileNumber = _phoneTextController.text.trim();
-        await Provider.of<MultiPartUploadProvider>(
-            context,
-            listen: false)
+        await Provider.of<MultiPartUploadProvider>(context, listen: false)
             .uploadProfileFile(_imageFile, MimeMediaType.image, _userModel)
-            .then((success) {
+            .then((success) async {
           setState(() {
             _isLoading = false;
           });
           if (success) {
+            var appDir = await getApplicationDocumentsDirectory();
+            if (Platform.isIOS) {
+              appDir = await getApplicationDocumentsDirectory();
+            } else {
+              appDir = await getExternalStorageDirectory();
+            }
+            await _imageFile.copy('${appDir.path}/profile.png');
             showSuccessToast('Profile updated successfully');
+            _userModel.userImage = 'profile.png';
             pref.user = _userModel;
-            Provider.of<AuthProvider>(context,listen: false).isProfileUpdated = true;
+            Provider.of<AuthProvider>(context, listen: false).isProfileUpdated =
+                true;
           } else {
             showErrorToast('Oops, something went wrong. Please try later');
           }
