@@ -8,6 +8,7 @@ class AppSharedPref {
   final String PREF_TOKEN_DATA = "TOKEN_DATA";
   final String PREF_LAST_SYNC_DATE = 'PREF_LAST_SYNC_DATE';
   final String PREF_SEL_CASE_TYPE = 'PREF_SEL_CASE_TYPE';
+  final String PREF_FOLDER_PATH = 'PREF_FOLDER_PATH';
 
   static AppSharedPref _instance;
   static SharedPreferences _preferences;
@@ -90,6 +91,15 @@ class AppSharedPref {
 
   String get caseTypeSelected {
     return _getFromDisk(PREF_SEL_CASE_TYPE);
+  }
+
+  /// Path
+  set appDocPath(String type) {
+    _saveToDisk(PREF_FOLDER_PATH, type);
+  }
+
+  String get appDocPath {
+    return _getFromDisk(PREF_FOLDER_PATH);
   }
 
   void clearUserData() {

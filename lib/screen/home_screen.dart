@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:claim_investigation/base/base_page.dart';
@@ -17,6 +18,7 @@ import 'package:claim_investigation/util/size_constants.dart';
 import 'package:claim_investigation/widgets/adaptive_widgets.dart';
 import 'package:connectivity/connectivity.dart';
 import 'package:file/local.dart';
+import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
@@ -24,6 +26,7 @@ import 'package:get/get.dart';
 import 'package:modal_progress_hud/modal_progress_hud.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:version/version.dart';
 
 class HomeScreen extends BasePage {
   static const routeName = '/homeScreen';
@@ -43,7 +46,7 @@ class _HomeScreenState extends BaseState<HomeScreen> {
     pref.caseTypeSelected = 'All';
     // live tracking
     Geolocator.getPositionStream(desiredAccuracy: LocationAccuracy.high)
-        .listen((Position position) {
+        .listen((Position position) async {
       if (position != null) {
         if (oldPosition != null) {
           double distanceInMeters = Geolocator.distanceBetween(
@@ -59,22 +62,70 @@ class _HomeScreenState extends BaseState<HomeScreen> {
         } else {
           oldPosition = position;
         }
-        Provider.of<ClaimProvider>(context, listen: false).updateLocation(
-            position.latitude.toString(), position.longitude.toString());
+
+        /// Check internet connection
+        var connectivityResult = await (Connectivity().checkConnectivity());
+        if (connectivityResult != ConnectivityResult.none) {
+          Provider.of<ClaimProvider>(context, listen: false)
+              .updateLocation(
+                  position.latitude.toString(), position.longitude.toString())
+              .then((value) {}, onError: (error) {});
+        }
       }
       // print(position == null ? 'Unknown' : position.latitude.toString() + ', ' + position.longitude.toString());
     });
 
     Future.delayed(Duration(milliseconds: 50)).then((value) async {
-      await Provider.of<ClaimProvider>(context, listen: false)
-          .getDashBoard()
-          .then((value) async {
-        await Provider.of<ClaimProvider>(context, listen: false)
-            .getDashBoardFromDB();
-      }, onError: (error) async {
-        await Provider.of<ClaimProvider>(context, listen: false)
-            .getDashBoardFromDB();
-      });
+      var appDir = await getApplicationDocumentsDirectory();
+      if (Platform.isIOS) {
+        appDir = await getApplicationDocumentsDirectory();
+      } else {
+        appDir = await getExternalStorageDirectory();
+      }
+      pref.appDocPath = appDir.path;
+
+      _getDashBoard();
+
+      /* final RemoteConfig remoteConfig = await RemoteConfig.instance;
+      await remoteConfig.fetch(expiration: const Duration(hours: 0));
+      await remoteConfig.activateFetched();
+      print('welcome message: ' + remoteConfig.getString('app_status'));
+      Map<String, dynamic> appStatus =
+          jsonDecode(remoteConfig.getString('app_status'));
+      Version localAppVersionNum = Version.parse(appHelper.getVersionNumber());
+      if (appStatus != null && appStatus.isNotEmpty) {
+        if (Platform.isIOS) {
+          Version remoteVersionNum = Version.parse(appStatus["version_no"]);
+          bool isForceUpdate = appStatus["is_force_update"];
+          if (remoteVersionNum != null && isForceUpdate != null) {
+            if (remoteVersionNum > localAppVersionNum && isForceUpdate) {
+              print('Update available force');
+              showVersionDialogCompulsory(context);
+            } else if (remoteVersionNum > localAppVersionNum &&
+                !isForceUpdate) {
+              print('Update available');
+              showVersionDialog(context);
+            } else {
+              print('App is up to date');
+            }
+          }
+        } else if (Platform.isAndroid) {
+          Version remoteVersionNum = Version.parse(appStatus["a_version_no"]);
+          bool isForceUpdate = appStatus["a_is_force_update"];
+          if (remoteVersionNum != null && isForceUpdate != null) {
+            if (remoteVersionNum > localAppVersionNum && isForceUpdate) {
+              print('Update available force');
+              showVersionDialogCompulsory(context);
+            } else if (remoteVersionNum > localAppVersionNum &&
+                !isForceUpdate) {
+              print('Update available');
+              showVersionDialog(context);
+            } else {
+              print('App is up to date');
+            }
+          }
+        }
+      } */
     });
   }
 
@@ -175,7 +226,7 @@ class _HomeScreenState extends BaseState<HomeScreen> {
           ],
         ),
         body: WillPopScope(
-            onWillPop: onWillPop,
+          onWillPop: onWillPop,
           child: Consumer<ClaimProvider>(builder: (_, claimProvider, child) {
             if (claimProvider.reportModel == null) {
               return Center(
@@ -184,71 +235,76 @@ class _HomeScreenState extends BaseState<HomeScreen> {
                     : const CupertinoActivityIndicator(radius: 15),
               );
             }
-            return ModalProgressHUD(
-              inAsyncCall: claimProvider.isLoading,
-              child: Column(
-                children: [
-                  Expanded(
-                    child: GridView.builder(
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 3,
-                        childAspectRatio: (itemWidth / itemHeight),
+            return RefreshIndicator(
+              onRefresh: _getDashBoard,
+              child: ModalProgressHUD(
+                inAsyncCall: claimProvider.isLoading,
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: GridView.builder(
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 3,
+                          childAspectRatio: (itemWidth / itemHeight),
+                        ),
+                        itemBuilder: (_, index) {
+                          if (index == 0) {
+                            return itemView('PIV/PRV/LIVE count',
+                                claimProvider.reportModel.pivPrvLiveCount);
+                          } else if (index == 1) {
+                            return itemView('New',
+                                claimProvider.reportModel.reportModelNew);
+                          } else if (index == 2) {
+                            return itemView('Claim Document Pickup',
+                                claimProvider.reportModel.claimDocumentPickup);
+                          } else if (index == 3) {
+                            return itemView(
+                                'Closed', claimProvider.reportModel.closed);
+                          } else if (index == 4) {
+                            return itemView(
+                                'Actioned by Investigator',
+                                claimProvider
+                                    .reportModel.actionedByInvestigator);
+                          }
+                          return itemView('', 0);
+                        },
+                        itemCount: 5,
                       ),
-                      itemBuilder: (_, index) {
-                        if (index == 0) {
-                          return itemView('PIV/PRV/LIVE count',
-                              claimProvider.reportModel.pivPrvLiveCount);
-                        } else if (index == 1) {
-                          return itemView(
-                              'New', claimProvider.reportModel.reportModelNew);
-                        } else if (index == 2) {
-                          return itemView('Claim Document Pickup',
-                              claimProvider.reportModel.claimDocumentPickup);
-                        } else if (index == 3) {
-                          return itemView(
-                              'Closed', claimProvider.reportModel.closed);
-                        } else if (index == 4) {
-                          return itemView('Actioned by Investigator',
-                              claimProvider.reportModel.actionedByInvestigator);
-                        }
-                        return itemView('', 0);
+                    ),
+                    RaisedButton(
+                      color: primaryColor,
+                      onPressed: () async {
+                        pref.caseTypeSelected = 'All';
+                        showLoadingDialog();
+                        await Provider.of<ClaimProvider>(SizeConfig.cxt,
+                                listen: false)
+                            .getCaseList(true)
+                            .then((value) async {
+                          await Provider.of<ClaimProvider>(SizeConfig.cxt,
+                                  listen: false)
+                              .getCasesFromDB();
+                          //hide dialog
+                          Navigator.pop(context);
+                          Get.toNamed(CaseListScreen.routeName);
+                        }, onError: (error) async {
+                          await Provider.of<ClaimProvider>(SizeConfig.cxt,
+                                  listen: false)
+                              .getCasesFromDB();
+                          //hide dialog
+                          Navigator.pop(context);
+                          Get.toNamed(CaseListScreen.routeName);
+                        });
                       },
-                      itemCount: 5,
+                      child: Text(
+                        'View All Cases',
+                        style: TextStyle(color: Colors.white),
+                      ),
                     ),
-                  ),
-                  RaisedButton(
-                    color: primaryColor,
-                    onPressed: () async {
-                      pref.caseTypeSelected = 'All';
-                      showLoadingDialog();
-                      await Provider.of<ClaimProvider>(SizeConfig.cxt,
-                              listen: false)
-                          .getCaseList(true)
-                          .then((value) async {
-                        await Provider.of<ClaimProvider>(SizeConfig.cxt,
-                                listen: false)
-                            .getCasesFromDB();
-                        //hide dialog
-                        Navigator.pop(context);
-                        Get.toNamed(CaseListScreen.routeName);
-                      }, onError: (error) async {
-                        await Provider.of<ClaimProvider>(SizeConfig.cxt,
-                                listen: false)
-                            .getCasesFromDB();
-                        //hide dialog
-                        Navigator.pop(context);
-                        Get.toNamed(CaseListScreen.routeName);
-                      });
-                    },
-                    child: Text(
-                      'View All Cases',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                  ),
-                  SizedBox(
-                    height: 5,
-                  )
-                ],
+                    SizedBox(
+                      height: 5,
+                    )
+                  ],
+                ),
               ),
             );
           }),
@@ -272,7 +328,7 @@ class _HomeScreenState extends BaseState<HomeScreen> {
         'Syncing offline data..',
       );
       for (CaseModel model in arrayCases) {
-        await _submitReport(model).then((success){
+        await _submitReport(model).then((success) {
           if (!success) {
             return;
           }
@@ -353,7 +409,7 @@ class _HomeScreenState extends BaseState<HomeScreen> {
     if (!_validImageURL && _caseModel.image2.isNotEmpty) {
       return await Provider.of<MultiPartUploadProvider>(context, listen: false)
           .uploadFile(File("$folderPath/${_caseModel.image2}"),
-          MimeMediaType.image, _caseModel, 'image2');
+              MimeMediaType.image, _caseModel, 'image2');
     } else {
       return Future.value(true);
     }
@@ -436,5 +492,17 @@ class _HomeScreenState extends BaseState<HomeScreen> {
     } else {
       return Future.value(true);
     }
+  }
+
+  Future _getDashBoard() async {
+    await Provider.of<ClaimProvider>(context, listen: false)
+        .getDashBoard()
+        .then((value) async {
+      await Provider.of<ClaimProvider>(context, listen: false)
+          .getDashBoardFromDB();
+    }, onError: (error) async {
+      await Provider.of<ClaimProvider>(context, listen: false)
+          .getDashBoardFromDB();
+    });
   }
 }

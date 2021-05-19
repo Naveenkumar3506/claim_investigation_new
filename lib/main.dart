@@ -11,6 +11,7 @@ import 'package:claim_investigation/util/app_helper.dart';
 import 'package:claim_investigation/util/color_contants.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:get/get.dart';
 import 'package:get/get_navigation/src/root/get_material_app.dart';
 import 'package:get_it/get_it.dart';
 import 'package:provider/provider.dart';

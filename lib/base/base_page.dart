@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:claim_investigation/storage/app_pref.dart';
 import 'package:claim_investigation/util/app_helper.dart';
 import 'package:claim_investigation/util/size_constants.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:get/get.dart';
@@ -10,10 +11,16 @@ import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:modal_progress_hud/modal_progress_hud.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:video_compress/video_compress.dart';
 
 import '../main.dart';
 import 'base_provider.dart';
+
+const APP_STORE_URL =
+    'https://apps.apple.com/us/app/one-r-r/id1522274247';
+const PLAY_STORE_URL =
+    'https://play.google.com/store/apps/details?id=com.star.starrnr';
 
 abstract class BasePage extends StatefulWidget {
   BasePage({Key key}) : super(key: key);
@@ -25,6 +32,91 @@ abstract class BaseState<Page extends BasePage> extends State<Page> {
 
   hideKeyboard() {
     FocusScope.of(context).unfocus();
+  }
+
+  showVersionDialogCompulsory(context) async {
+    await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        String title = "New Update Available";
+        String message =
+            "There is a newer version of app available please update it now.";
+        String btnLabel = "Update Now";
+        return Platform.isIOS
+            ? new CupertinoAlertDialog(
+          title: Text(title),
+          content: Text(message),
+          actions: <Widget>[
+            FlatButton(
+              child: Text(btnLabel),
+              onPressed: () => _launchURL(APP_STORE_URL),
+            ),
+          ],
+        )
+            : new AlertDialog(
+          title: Text(title),
+          content: Text(message),
+          actions: <Widget>[
+            FlatButton(
+              child: Text(btnLabel),
+              onPressed: () => _launchURL(PLAY_STORE_URL),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  showVersionDialog(context) async {
+    await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        String title = "New Update Available";
+        String message =
+            "There is a newer version of app available please update it now.";
+        String btnLabel = "Update Now";
+        String btnLabelCancel = "Later";
+        return Platform.isIOS
+            ? new CupertinoAlertDialog(
+          title: Text(title),
+          content: Text(message),
+          actions: <Widget>[
+            FlatButton(
+              child: Text(btnLabel),
+              onPressed: () => _launchURL(APP_STORE_URL),
+            ),
+            FlatButton(
+              child: Text(btnLabelCancel),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ],
+        )
+            : new AlertDialog(
+          title: Text(title),
+          content: Text(message),
+          actions: <Widget>[
+            FlatButton(
+              child: Text(btnLabel),
+              onPressed: () => _launchURL(PLAY_STORE_URL),
+            ),
+            FlatButton(
+              child: Text(btnLabelCancel),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  _launchURL(String url) async {
+    if (await canLaunch(url)) {
+      await launch(url);
+    } else {
+      throw 'Could not launch $url';
+    }
   }
 
   imagePickerDialog(Function onCamera, Function onGallery) {

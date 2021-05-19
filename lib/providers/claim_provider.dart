@@ -62,6 +62,7 @@ class ClaimProvider extends BaseProvider {
       }, (r) async {
         AppLog.print('right----> ' + r.toString());
         final reportModel = ReportModel.fromJson(r);
+        await DBHelper.deleteReport();
         await DBHelper.saveReport(reportModel);
         return reportModel;
       });
@@ -131,7 +132,6 @@ class ClaimProvider extends BaseProvider {
   }
 
   Future<bool> submitReport(CaseModel caseModel) async {
-    showLoadingIndicator();
     final response = await super.apiClient.callWebService(
         path: ApiConstant.API_UPDATE_CASE_DETAILS,
         method: ApiMethod.POST,
@@ -145,7 +145,6 @@ class ClaimProvider extends BaseProvider {
           'remarks': caseModel.newRemarks
         },
         withAuth: false);
-    hideLoadingIndicator();
     return response.fold((l) {
       AppLog.print('left----> ' + l.toString());
       showErrorToast(l.toString());

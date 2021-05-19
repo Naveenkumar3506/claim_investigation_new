@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io' as io;
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:audioplayers/audioplayers.dart';
@@ -13,11 +14,13 @@ import 'package:claim_investigation/screen/pdfView_screen.dart';
 import 'package:claim_investigation/storage/db_helper.dart';
 import 'package:claim_investigation/storage/db_manager.dart';
 import 'package:claim_investigation/util/app_enum.dart';
+import 'package:claim_investigation/util/app_exception.dart';
 import 'package:claim_investigation/util/app_helper.dart';
 import 'package:claim_investigation/util/color_contants.dart';
 import 'package:claim_investigation/util/size_constants.dart';
 import 'package:claim_investigation/widgets/adaptive_widgets.dart';
 import 'package:claim_investigation/widgets/video_player_screen.dart';
+import 'package:connectivity/connectivity.dart';
 import 'package:esys_flutter_share/esys_flutter_share.dart';
 import 'package:ext_storage/ext_storage.dart';
 import 'package:file/local.dart';
@@ -87,6 +90,11 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
   bool isImage1Changed = false;
   bool isImage2Changed = false;
   bool isVideoChanged = false;
+  bool isAudioChanged = false;
+  bool isPDF1Changed = false;
+  bool isPDF2Changed = false;
+  bool isPDF3Changed = false;
+  bool isDocChanged = false;
   String folderPath = '';
 
   @override
@@ -114,8 +122,8 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
         _caseModel.excelFilepath.isNotEmpty) {
       documentTextController.text = 'Excel';
     }
-    if (_caseModel.remarks != null && _caseModel.remarks.isNotEmpty) {
-      remarksTextController.text = _caseModel.remarks;
+    if (_caseModel.newRemarks != null && _caseModel.newRemarks.isNotEmpty) {
+      remarksTextController.text = _caseModel.newRemarks;
     }
 
     //
@@ -134,6 +142,11 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
     if (_validVideoURL) {
       try {
         new Future.delayed(Duration(milliseconds: 500), () async {
+          /// Check internet connection
+          var connectivityResult = await (Connectivity().checkConnectivity());
+          if (connectivityResult == ConnectivityResult.none) {
+            return;
+          }
           showLoadingDialog();
           Uint8List bytes = await thumbnail.VideoThumbnail.getBytes(
               Uri.encodeFull(_caseModel.videoFilePath));
@@ -173,10 +186,14 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
     bool _validPDF3URL = Uri.parse(_caseModel.pdf3FilePath).isAbsolute;
     bool _validAudioURL = Uri.parse(_caseModel.audioFilePath).isAbsolute;
     bool _validExcelURL = Uri.parse(_caseModel.excelFilepath).isAbsolute;
+    bool _validSignURL = Uri.parse(_caseModel.signatureFilePath).isAbsolute;
 
     if (!_validExcelURL && _caseModel.excelFilepath.isNotEmpty) {
       _documentFile = io.File(folderPath + "/${_caseModel.excelFilepath}");
       documentTextController.text = 'Excel';
+    }
+    if (!_validSignURL && _caseModel.signatureFilePath.isNotEmpty) {
+      _signFile = io.File("$folderPath/${_caseModel.signatureFilePath}");
     }
     //
     if (!_validImageURL && _caseModel.image.isNotEmpty) {
@@ -528,14 +545,10 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
           });
         }
         //
-        if (_videoFile != null && isVideoChanged) {
+       /* if (_videoFile != null && isVideoChanged) {
           final tapiocaBalls = [
             TapiocaBall.textOverlay(
-                '${_caseModel.latitude}, ${_caseModel.longitude}',
-                100,
-                10,
-                100,
-                Color(0xffffffff)),
+                '${_caseModel.latitude}', 100, 10, 100, Color(0xffffffff)),
           ];
           final savedPath = '$folderPath/video.mp4';
           final cup = Cup(Content(_videoFile.path), tapiocaBalls);
@@ -545,7 +558,7 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
             _caseModel.videoFilePath = fileName;
             _videoFile = io.File(savedPath);
           });
-        }
+        } */
 
         final results = await Future.wait([
           uploadImage(),
@@ -671,11 +684,19 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
               Provider.of<ClaimProvider>(SizeConfig.cxt, listen: false)
                   .getCaseList(true);
               showSuccessToast('Cases Details submitted successfully');
+              DBHelper.deleteCase(_caseModel, DbManager.syncCaseTable);
+              DBHelper.deleteCase(_caseModel, DbManager.caseTable);
+              DBHelper.deleteCase(_caseModel, DbManager.PIVCaseTable);
+              DBHelper.deleteCase(_caseModel, DbManager.NewCaseTable);
+              DBHelper.deleteCase(_caseModel, DbManager.CDPCaseTable);
+              DBHelper.deleteCase(_caseModel, DbManager.ClosedCaseTable);
+              DBHelper.deleteCase(_caseModel, DbManager.InvestigatorCaseTable);
+              final dir = Directory(folderPath);
+              dir.deleteSync(recursive: true);
             } else {
               showErrorToast('Oops, Something went wrong. Please try again');
             }
           }, onError: (error) {
-            Navigator.pop(context);
             Navigator.pop(context);
             showErrorToast(error.toString());
           });
@@ -705,7 +726,7 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
           ui.Image originalImage = ui.decodeImage(_imageFile.readAsBytesSync());
           ui.drawString(
             originalImage,
-            ui.arial_24,
+            ui.arial_48,
             originalImage.width - 500,
             originalImage.height - 100,
             '${_caseModel.latitude}, ${_caseModel.longitude}',
@@ -718,30 +739,33 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
         }
         //
         if (isImage2Changed) {
-          ui.Image originalImage =
+          ui.Image originalImage2 =
               ui.decodeImage(_imageFile2.readAsBytesSync());
           ui.drawString(
-            originalImage,
+            originalImage2,
             ui.arial_48,
-            originalImage.width - 500,
-            originalImage.height - 100,
+            originalImage2.width - 500,
+            originalImage2.height - 100,
             '${_caseModel.latitude}, ${_caseModel.longitude}',
           );
           // Store the watermarked image to a File
-          List<int> wmImage = ui.encodePng(originalImage);
-          await _createWaterMarkFile2FromString(wmImage).then((value) {
+          List<int> wmImage2 = ui.encodePng(originalImage2);
+          await _createWaterMarkFile2FromString(wmImage2).then((value) {
             _imageFile2 = value;
           });
         }
         //
         if (_videoFile != null && isVideoChanged) {
-          final tapiocaBalls = [
+          if (_videoFile != null) {
+            io.File savedFile =
+                await _saveFileToAppDirectory(_videoFile, 'video.mp4');
+            String fileName = path.basename(savedFile.path);
+            _caseModel.videoFilePath = fileName;
+          }
+
+          /* final tapiocaBalls = [
             TapiocaBall.textOverlay(
-                '${_caseModel.latitude}, ${_caseModel.longitude}',
-                100,
-                10,
-                100,
-                Color(0xffffffff)),
+                '${_caseModel.latitude}', 100, 10, 100, Color(0xffffffff)),
           ];
           final savedPath = '$folderPath/video.mp4';
           final cup = Cup(Content(_videoFile.path), tapiocaBalls);
@@ -749,7 +773,7 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
             print("finish processing");
             String fileName = path.basename(savedPath);
             _caseModel.videoFilePath = fileName;
-          });
+          }); */
         }
       }
     });
@@ -764,31 +788,30 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
     }
 
     if (_imageFile2 != null) {
-      io.File savedFile =
-          await _saveFileToAppDirectory(_imageFile2, 'image2.png');
-      String fileName = path.basename(savedFile.path);
+      // io.File savedFile = await _saveFileToAppDirectory(_imageFile2, 'image2.png');
+      String fileName = path.basename(_imageFile2.path);
       _caseModel.image2 = fileName;
     }
 
-    if (_pdfFile1 != null) {
+    if (_pdfFile1 != null && isPDF1Changed) {
       io.File savedFile = await _saveFileToAppDirectory(_pdfFile1, 'pdf1.pdf');
       String fileName = path.basename(savedFile.path);
       _caseModel.pdf1FilePath = fileName;
     }
 
-    if (_pdfFile2 != null) {
+    if (_pdfFile2 != null && isPDF2Changed) {
       io.File savedFile = await _saveFileToAppDirectory(_pdfFile2, 'pdf2.pdf');
       String fileName = path.basename(savedFile.path);
       _caseModel.pdf2FilePath = fileName;
     }
 
-    if (_pdfFile3 != null) {
+    if (_pdfFile3 != null && isPDF3Changed) {
       io.File savedFile = await _saveFileToAppDirectory(_pdfFile3, 'pdf3.pdf');
       String fileName = path.basename(savedFile.path);
       _caseModel.pdf3FilePath = fileName;
     }
 
-    if (_documentFile != null) {
+    if (_documentFile != null && isDocChanged) {
       final extension = path.extension(_documentFile.path); // '.dart'
       io.File savedFile =
           await _saveFileToAppDirectory(_documentFile, 'excel$extension');
@@ -1487,6 +1510,7 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                           _pdfFile1 = io.File(result.files.single.path);
                           _pdfFileName1 = platformFile.name;
                           pdfName1TextController.text = _pdfFileName1;
+                          isPDF1Changed = true;
                         } else {
                           Get.snackbar(
                               'Alert', 'Please select PDF files only.');
@@ -1567,6 +1591,7 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                           _pdfFile2 = io.File(result.files.single.path);
                           _pdfFileName2 = platformFile.name;
                           pdfName2TextController.text = _pdfFileName2;
+                          isPDF2Changed = true;
                         } else {
                           Get.snackbar(
                               'Alert', 'Please select PDF files only.');
@@ -1648,6 +1673,7 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                           _pdfFile3 = io.File(result.files.single.path);
                           _pdfFileName3 = platformFile.name;
                           pdfName3TextController.text = _pdfFileName3;
+                          isPDF3Changed = true;
                         } else {
                           Get.snackbar(
                               'Alert', 'Please select PDF files only.');
@@ -1756,9 +1782,11 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                             width: SizeConfig.screenWidth,
                             child: CachedNetworkImage(
                               imageUrl: _caseModel.image,
-                              placeholder: (context, url) => SizedBox(width: 30, height: 30, child: CircularProgressIndicator()),
-                              errorWidget: (context, url, error) => Icon(Icons.error),
                               fit: BoxFit.cover,
+                              errorWidget: (context, url, error) => new Icon(
+                                Icons.error,
+                                color: Colors.red,
+                              ),
                             ),
                           )
                         : Stack(alignment: Alignment.center, children: [
@@ -1862,9 +1890,11 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                             width: SizeConfig.screenWidth,
                             child: CachedNetworkImage(
                               imageUrl: _caseModel.image2,
-                              placeholder: (context, url) => SizedBox(width: 30, height: 30, child: CircularProgressIndicator()),
-                              errorWidget: (context, url, error) => Icon(Icons.error),
                               fit: BoxFit.cover,
+                              errorWidget: (context, url, error) => new Icon(
+                                Icons.error,
+                                color: Colors.red,
+                              ),
                             ),
                           )
                         : Stack(alignment: Alignment.center, children: [
@@ -2307,6 +2337,7 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                           _documentFile = io.File(result.files.single.path);
                           _documentFileName = platformFile.name;
                           documentTextController.text = _documentFileName;
+                          isDocChanged = true;
                         } else {
                           Get.snackbar('Alert',
                               'Please select excel or csv files only.');

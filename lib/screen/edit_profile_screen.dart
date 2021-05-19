@@ -98,9 +98,14 @@ class _EditProfileScreenState extends BaseState<EditProfileScreen> {
             } else {
               appDir = await getExternalStorageDirectory();
             }
-            await _imageFile.copy('${appDir.path}/profile.png');
+            //O
+            String fileName =
+                'profile_${DateTime.now().millisecondsSinceEpoch.toString()}.png';
+            if (_imageFile != null) {
+              await _imageFile.copy('${appDir.path}/$fileName');
+            }
             showSuccessToast('Profile updated successfully');
-            _userModel.userImage = 'profile.png';
+            _userModel.userImage = fileName;
             pref.user = _userModel;
             Provider.of<AuthProvider>(context, listen: false).isProfileUpdated =
                 true;
@@ -166,28 +171,30 @@ class _EditProfileScreenState extends BaseState<EditProfileScreen> {
                         },
                         child: CircleAvatar(
                           backgroundColor: Colors.white,
-                          radius: 35,
+                          radius: 45,
                           child: _imageFile != null
                               ? ClipOval(
                                   child: Image.file(
                                     _imageFile,
-                                    width: 70,
-                                    height: 70,
+                                    width: 90,
+                                    height: 90,
                                     fit: BoxFit.cover,
                                   ),
                                 )
                               : null,
-                          backgroundImage: (pref.user.userImage == null ||
-                                  pref.user.userImage == "")
-                              ? AssetImage(
-                                  'assets/images/ic_profile_placeholder.jpg')
-                              : CachedNetworkImageProvider(pref.user.userImage),
+                          backgroundImage: (_userModel.userImage != null &&
+                                  _userModel.userImage != "" &&
+                                  Uri.parse(_userModel.userImage).isAbsolute)
+                              ? CachedNetworkImageProvider(_userModel.userImage)
+                              : AssetImage(
+                                  'assets/images/ic_profile_placeholder.jpg'),
                         ),
                       ),
                       SizedBox(height: 20),
                       AppFormTextField(
                         hintText: 'Enter your username',
                         hintLabel: 'Username',
+                        enabled: false,
                         controller: _userNameTextController,
                         ctx: context,
                         focusNode: _emailNode,
