@@ -33,6 +33,7 @@ class _EditProfileScreenState extends BaseState<EditProfileScreen> {
   File _imageFile;
   UserModel _userModel;
   bool _isLoading = false;
+  bool isImageChanged = false;
 
   @override
   void initState() {
@@ -101,11 +102,11 @@ class _EditProfileScreenState extends BaseState<EditProfileScreen> {
             //O
             String fileName =
                 'profile_${DateTime.now().millisecondsSinceEpoch.toString()}.png';
-            if (_imageFile != null) {
+            if (_imageFile != null && isImageChanged) {
               await _imageFile.copy('${appDir.path}/$fileName');
+              _userModel.userImage = fileName;
             }
             showSuccessToast('Profile updated successfully');
-            _userModel.userImage = fileName;
             pref.user = _userModel;
             Provider.of<AuthProvider>(context, listen: false).isProfileUpdated =
                 true;
@@ -154,6 +155,7 @@ class _EditProfileScreenState extends BaseState<EditProfileScreen> {
                               if (value != null) {
                                 setState(() {
                                   _imageFile = value;
+                                  isImageChanged = true;
                                 });
                               }
                             });
@@ -164,6 +166,7 @@ class _EditProfileScreenState extends BaseState<EditProfileScreen> {
                               if (value != null) {
                                 setState(() {
                                   _imageFile = value;
+                                  isImageChanged = true;
                                 });
                               }
                             });

@@ -15,6 +15,11 @@ class DBHelper {
     return List<CaseModel>.from(listCases.map((x) => CaseModel.fromMap(x)));
   }
 
+  static Future<List<CaseModel>> getCasesFromTable(String table) async {
+    final listCases = await DbManager.db.queryAllRows(table);
+    return List<CaseModel>.from(listCases.map((x) => CaseModel.fromMap(x)));
+  }
+
   static Future updateCaseDetail(CaseModel caseModel, String table) async {
     await DbManager.db
         .update(table, 'caseId = ?', [caseModel.caseId], caseModel.toMap());

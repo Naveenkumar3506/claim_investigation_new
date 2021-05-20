@@ -186,46 +186,54 @@ class ClaimProvider extends BaseProvider {
       tableName = DbManager.InvestigatorCaseTable;
     }
 
-    final response = await super.apiClient.callWebService(
-        path: path,
-        method: ApiMethod.POST,
-        body: {
-          "username": pref.user.username,
-          "pageNum": caseListPageNumber,
-          "pagesize": fetchDataSize
-        },
-        withAuth: false);
+    await super
+        .apiClient
+        .callWebService(
+            path: path,
+            method: ApiMethod.POST,
+            body: {
+              "username": pref.user.username,
+              "pageNum": caseListPageNumber,
+              "pagesize": fetchDataSize
+            },
+            withAuth: false)
+        .then((response) {
+      //
+      isLoading = false;
+      isLoadMore = false;
 
-    isLoading = false;
-    isLoadMore = false;
-
-    return response.fold((l) {
-      AppLog.print('left----> ' + l.toString());
-      showErrorToast(l.toString());
-      return listCases;
-    }, (r) async {
-      AppLog.print('right----> ' + r.toString());
-      final parsed = r.cast<Map<String, dynamic>>();
-      List<CaseModel> arrayCases =
-          parsed.map<CaseModel>((json) => CaseModel.fromJson(json)).toList();
-      if (arrayCases.isNotEmpty) {
-        if (isRefresh) {
-          listCases.clear();
-          if (scrollController != null) {
-            // scrollController.animateTo(
-            //   0.0,
-            //   curve: Curves.easeOut,
-            //   duration: const Duration(milliseconds: 300),
-            // );
+      return response.fold((l) {
+        AppLog.print('left----> ' + l.toString());
+        showErrorToast(l.toString());
+        return listCases;
+      }, (r) async {
+        AppLog.print('right----> ' + r.toString());
+        final parsed = r.cast<Map<String, dynamic>>();
+        List<CaseModel> arrayCases =
+            parsed.map<CaseModel>((json) => CaseModel.fromJson(json)).toList();
+        if (arrayCases.isNotEmpty) {
+          if (isRefresh) {
+            listCases.clear();
+            if (scrollController != null) {
+              // scrollController.animateTo(
+              //   0.0,
+              //   curve: Curves.easeOut,
+              //   duration: const Duration(milliseconds: 300),
+              // );
+            }
           }
+          listCases.addAll(arrayCases);
+          await DBHelper.saveCases(listCases, tableName);
+          caseListPageNumber += 1;
+        } else {
+          showSuccessToast(isLoadMore ? 'you are done' : 'No Cases Found');
         }
-        listCases.addAll(arrayCases);
-        await DBHelper.saveCases(listCases, tableName);
-        caseListPageNumber += 1;
-      } else {
-        showSuccessToast(isLoadMore ? 'you are done' : 'No Cases Found');
-      }
-      return listCases;
+        return listCases;
+      });
+    }, onError: (error) {
+      isLoading = false;
+      isLoadMore = false;
+      throw error;
     });
   }
 
@@ -261,6 +269,29 @@ class ClaimProvider extends BaseProvider {
   Future getCasesFromDB() async {
     final arrayCases = await DBHelper.getAllCases();
     listCases = arrayCases;
+  }
+
+  Future<List<CaseModel>> getCaseFromDB() async {
+    String table = DbManager.caseTable;
+    if (pref.caseTypeSelected != null &&
+        pref.caseTypeSelected == 'PIV/PRV/LIVE count') {
+      table = DbManager.PIVCaseTable;
+    } else if (pref.caseTypeSelected != null &&
+        pref.caseTypeSelected == "New") {
+      table = DbManager.NewCaseTable;
+    } else if (table != null &&
+        pref.caseTypeSelected == "Claim Document Pickup") {
+      table = DbManager.CDPCaseTable;
+    } else if (pref.caseTypeSelected != null &&
+        pref.caseTypeSelected == "Closed") {
+      table = DbManager.ClosedCaseTable;
+    } else if (pref.caseTypeSelected != null &&
+        pref.caseTypeSelected == "Actioned by Investigator") {
+      table = DbManager.InvestigatorCaseTable;
+    }
+    final arrayCases = await DBHelper.getCasesFromTable(table);
+    listCases = arrayCases;
+    return listCases;
   }
 
   Future<ReportModel> getDashBoardFromDB() async {

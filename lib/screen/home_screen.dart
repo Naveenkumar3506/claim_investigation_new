@@ -180,13 +180,28 @@ class _HomeScreenState extends BaseState<HomeScreen> {
         showLoadingDialog();
         await Provider.of<ClaimProvider>(SizeConfig.cxt, listen: false)
             .getNewCaseList(true, title)
-            .then((value) {
-          //hide dialog
-          if (value.isEmpty) {
+            .then((value) async {
+          await Provider.of<ClaimProvider>(context, listen: false)
+              .getCaseFromDB().then((value){
+            //hide dialog
+            if (value.isEmpty) {
+              Navigator.pop(context);
+            }
+
             Navigator.pop(context);
-          }
-          Navigator.pop(context);
-          Get.toNamed(CaseListScreen.routeName);
+            Get.toNamed(CaseListScreen.routeName);
+          });
+        }, onError: (error) async {
+          await Provider.of<ClaimProvider>(context, listen: false)
+              .getCaseFromDB().then((value){
+            //hide dialog
+            if (value.isEmpty) {
+              Navigator.pop(context);
+            }
+
+            Navigator.pop(context);
+            Get.toNamed(CaseListScreen.routeName);
+          });
         });
       },
     );

@@ -386,7 +386,7 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
 
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      showAdaptiveAlertDialog(
+     /* showAdaptiveAlertDialog(
         context: context,
         title: "Alert",
         content: "Location is mandatory.",
@@ -395,14 +395,14 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
         defaultAction: () {
           Geolocator.openAppSettings();
         },
-      );
+      ); */
       return Future.error('Location services are disabled.');
     }
 
     permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.deniedForever) {
       return Future.error(
-          'Location permissions are permantly denied, we cannot request permissions.');
+          'Location permissions are permanently denied, we cannot request permissions.');
     }
 
     if (permission == LocationPermission.denied) {
@@ -410,7 +410,7 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
       if (permission != LocationPermission.whileInUse &&
           permission != LocationPermission.always) {
         return Future.error(
-            'Location permissions are denied (actual value: $permission).');
+            'Location permissions are denied. Go to settings and enable the location for the app');
       }
     }
 
@@ -775,90 +775,94 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
             _caseModel.videoFilePath = fileName;
           }); */
         }
-      }
-    });
-    _caseModel.caseDescription = descTextController.text;
-    _caseModel.newRemarks = remarksTextController.text;
+        //
+        _caseModel.caseDescription = descTextController.text;
+        _caseModel.newRemarks = remarksTextController.text;
 
-    if (_imageFile != null) {
-      // io.File savedFile =
-      //     await _saveFileToAppDirectory(_imageFile, 'image.png');
-      String fileName = path.basename(_imageFile.path);
-      _caseModel.image = fileName;
-    }
+        if (_imageFile != null) {
+          // io.File savedFile =
+          //     await _saveFileToAppDirectory(_imageFile, 'image.png');
+          String fileName = path.basename(_imageFile.path);
+          _caseModel.image = fileName;
+        }
 
-    if (_imageFile2 != null) {
-      // io.File savedFile = await _saveFileToAppDirectory(_imageFile2, 'image2.png');
-      String fileName = path.basename(_imageFile2.path);
-      _caseModel.image2 = fileName;
-    }
+        if (_imageFile2 != null) {
+          // io.File savedFile = await _saveFileToAppDirectory(_imageFile2, 'image2.png');
+          String fileName = path.basename(_imageFile2.path);
+          _caseModel.image2 = fileName;
+        }
 
-    if (_pdfFile1 != null && isPDF1Changed) {
-      io.File savedFile = await _saveFileToAppDirectory(_pdfFile1, 'pdf1.pdf');
-      String fileName = path.basename(savedFile.path);
-      _caseModel.pdf1FilePath = fileName;
-    }
+        if (_pdfFile1 != null && isPDF1Changed) {
+          io.File savedFile = await _saveFileToAppDirectory(_pdfFile1, 'pdf1.pdf');
+          String fileName = path.basename(savedFile.path);
+          _caseModel.pdf1FilePath = fileName;
+        }
 
-    if (_pdfFile2 != null && isPDF2Changed) {
-      io.File savedFile = await _saveFileToAppDirectory(_pdfFile2, 'pdf2.pdf');
-      String fileName = path.basename(savedFile.path);
-      _caseModel.pdf2FilePath = fileName;
-    }
+        if (_pdfFile2 != null && isPDF2Changed) {
+          io.File savedFile = await _saveFileToAppDirectory(_pdfFile2, 'pdf2.pdf');
+          String fileName = path.basename(savedFile.path);
+          _caseModel.pdf2FilePath = fileName;
+        }
 
-    if (_pdfFile3 != null && isPDF3Changed) {
-      io.File savedFile = await _saveFileToAppDirectory(_pdfFile3, 'pdf3.pdf');
-      String fileName = path.basename(savedFile.path);
-      _caseModel.pdf3FilePath = fileName;
-    }
+        if (_pdfFile3 != null && isPDF3Changed) {
+          io.File savedFile = await _saveFileToAppDirectory(_pdfFile3, 'pdf3.pdf');
+          String fileName = path.basename(savedFile.path);
+          _caseModel.pdf3FilePath = fileName;
+        }
 
-    if (_documentFile != null && isDocChanged) {
-      final extension = path.extension(_documentFile.path); // '.dart'
-      io.File savedFile =
+        if (_documentFile != null && isDocChanged) {
+          final extension = path.extension(_documentFile.path); // '.dart'
+          io.File savedFile =
           await _saveFileToAppDirectory(_documentFile, 'excel$extension');
-      String fileName = path.basename(savedFile.path);
-      _caseModel.excelFilepath = fileName;
-    }
+          String fileName = path.basename(savedFile.path);
+          _caseModel.excelFilepath = fileName;
+        }
 
-    if (_signFile != null) {
-      // io.File savedFile = await _saveFileToAppDirectory(_signFile, 'sign.png');
-      String fileName = path.basename(_signFile.path);
-      _caseModel.signatureFilePath = fileName;
-    }
+        if (_signFile != null) {
+          // io.File savedFile = await _saveFileToAppDirectory(_signFile, 'sign.png');
+          String fileName = path.basename(_signFile.path);
+          _caseModel.signatureFilePath = fileName;
+        }
 
-    if (_audioFile != null) {
-      // final extension = path.extension(_audioFile.path); // '.dart'
-      // io.File savedFile = await _saveFileToAppDirectory(_audioFile, 'audio.$extension');
-      String fileName = path.basename(_audioFile.path);
-      _caseModel.audioFilePath = fileName;
-    }
+        if (_audioFile != null) {
+          // final extension = path.extension(_audioFile.path); // '.dart'
+          // io.File savedFile = await _saveFileToAppDirectory(_audioFile, 'audio.$extension');
+          String fileName = path.basename(_audioFile.path);
+          _caseModel.audioFilePath = fileName;
+        }
 
-    if (_thumbnail != null) {
-      await _saveThumbnail(_thumbnail);
-    }
+        if (_thumbnail != null) {
+          await _saveThumbnail(_thumbnail);
+        }
 
-    await DBHelper.saveCase(_caseModel, DbManager.syncCaseTable);
-    //
-    if (pref.caseTypeSelected != null && pref.caseTypeSelected == 'All') {
-      await DBHelper.updateCaseDetail(_caseModel, DbManager.caseTable);
-    } else if (pref.caseTypeSelected != null &&
-        pref.caseTypeSelected == 'PIV/PRV/LIVE count') {
-      await DBHelper.updateCaseDetail(_caseModel, DbManager.PIVCaseTable);
-    } else if (pref.caseTypeSelected != null &&
-        pref.caseTypeSelected == "New") {
-      await DBHelper.updateCaseDetail(_caseModel, DbManager.NewCaseTable);
-    } else if (pref.caseTypeSelected != null &&
-        pref.caseTypeSelected == "Claim Document Pickup") {
-      await DBHelper.updateCaseDetail(_caseModel, DbManager.CDPCaseTable);
-    } else if (pref.caseTypeSelected != null &&
-        pref.caseTypeSelected == "Closed") {
-      await DBHelper.updateCaseDetail(_caseModel, DbManager.ClosedCaseTable);
-    } else if (pref.caseTypeSelected != null &&
-        pref.caseTypeSelected == "Actioned by Investigator") {
-      await DBHelper.updateCaseDetail(
-          _caseModel, DbManager.InvestigatorCaseTable);
-    }
-
-    Navigator.pop(context);
+        await DBHelper.saveCase(_caseModel, DbManager.syncCaseTable);
+        print(pref.caseTypeSelected);
+        //
+        if (pref.caseTypeSelected != null && pref.caseTypeSelected == 'All') {
+          await DBHelper.updateCaseDetail(_caseModel, DbManager.caseTable);
+        } else if (pref.caseTypeSelected != null &&
+            pref.caseTypeSelected == 'PIV/PRV/LIVE count') {
+          await DBHelper.updateCaseDetail(_caseModel, DbManager.PIVCaseTable);
+        } else if (pref.caseTypeSelected != null &&
+            pref.caseTypeSelected == "New") {
+          await DBHelper.updateCaseDetail(_caseModel, DbManager.NewCaseTable);
+        } else if (pref.caseTypeSelected != null &&
+            pref.caseTypeSelected == "Claim Document Pickup") {
+          await DBHelper.updateCaseDetail(_caseModel, DbManager.CDPCaseTable);
+        } else if (pref.caseTypeSelected != null &&
+            pref.caseTypeSelected == "Closed") {
+          await DBHelper.updateCaseDetail(_caseModel, DbManager.ClosedCaseTable);
+        } else if (pref.caseTypeSelected != null &&
+            pref.caseTypeSelected == "Actioned by Investigator") {
+          await DBHelper.updateCaseDetail(
+              _caseModel, DbManager.InvestigatorCaseTable);
+        }
+        Navigator.pop(context);
+      }
+    }, onError: (error) {
+      Navigator.pop(context);
+      showErrorToast(error.toString());
+    });
   }
 
   Future<io.File> _createSignFileFromString(Uint8List bytes) async {
