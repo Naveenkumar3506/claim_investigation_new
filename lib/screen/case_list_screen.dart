@@ -34,10 +34,12 @@ class _CaseListState extends BaseState<CaseListScreen> {
     final provider = Provider.of<ClaimProvider>(context, listen: false);
     provider.scrollController = _scrollController;
     _scrollController.addListener(() {
-      if ((_scrollController.position.maxScrollExtent ==
-              _scrollController.offset) &&
-          (provider.listCases.length % provider.fetchDataSize) == 0) {
-        provider.getCaseList(false);
+      if (pref.caseTypeSelected == 'All') {
+        if ((_scrollController.position.maxScrollExtent ==
+            _scrollController.offset) &&
+            (provider.listCases.length % provider.fetchDataSize) == 0) {
+          provider.getCaseList(false);
+        }
       }
     });
   }
