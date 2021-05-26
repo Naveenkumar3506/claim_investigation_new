@@ -182,7 +182,8 @@ class _HomeScreenState extends BaseState<HomeScreen> {
             .getNewCaseList(true, title)
             .then((value) async {
           await Provider.of<ClaimProvider>(context, listen: false)
-              .getCaseFromDB().then((value){
+              .getCaseFromDB()
+              .then((value) {
             //hide dialog
             if (value.isEmpty) {
               Navigator.pop(context);
@@ -193,12 +194,13 @@ class _HomeScreenState extends BaseState<HomeScreen> {
           });
         }, onError: (error) async {
           await Provider.of<ClaimProvider>(context, listen: false)
-              .getCaseFromDB().then((value){
+              .getCaseFromDB()
+              .then((value) {
             //hide dialog
             if (value.isEmpty) {
-              Navigator.pop(context);
+              // Navigator.pop(context);
             }
-
+            debugPrint(error.toString());
             Navigator.pop(context);
             Get.toNamed(CaseListScreen.routeName);
           });

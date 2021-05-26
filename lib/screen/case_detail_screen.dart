@@ -34,6 +34,7 @@ import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:signature/signature.dart';
 import 'package:tapioca/tapioca.dart';
@@ -128,6 +129,9 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
 
     //
     new Future.delayed(Duration(milliseconds: 50), () async {
+      if (!await Permission.storage.isGranted) {
+        await Permission.storage.request();
+      }
       var appDir = await getApplicationDocumentsDirectory();
       if (io.Platform.isIOS) {
         appDir = await getApplicationDocumentsDirectory();
@@ -386,7 +390,7 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
 
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-     /* showAdaptiveAlertDialog(
+      /* showAdaptiveAlertDialog(
         context: context,
         title: "Alert",
         content: "Location is mandatory.",
@@ -545,7 +549,7 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
           });
         }
         //
-       /* if (_videoFile != null && isVideoChanged) {
+        /* if (_videoFile != null && isVideoChanged) {
           final tapiocaBalls = [
             TapiocaBall.textOverlay(
                 '${_caseModel.latitude}', 100, 10, 100, Color(0xffffffff)),
@@ -793,19 +797,22 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
         }
 
         if (_pdfFile1 != null && isPDF1Changed) {
-          io.File savedFile = await _saveFileToAppDirectory(_pdfFile1, 'pdf1.pdf');
+          io.File savedFile =
+              await _saveFileToAppDirectory(_pdfFile1, 'pdf1.pdf');
           String fileName = path.basename(savedFile.path);
           _caseModel.pdf1FilePath = fileName;
         }
 
         if (_pdfFile2 != null && isPDF2Changed) {
-          io.File savedFile = await _saveFileToAppDirectory(_pdfFile2, 'pdf2.pdf');
+          io.File savedFile =
+              await _saveFileToAppDirectory(_pdfFile2, 'pdf2.pdf');
           String fileName = path.basename(savedFile.path);
           _caseModel.pdf2FilePath = fileName;
         }
 
         if (_pdfFile3 != null && isPDF3Changed) {
-          io.File savedFile = await _saveFileToAppDirectory(_pdfFile3, 'pdf3.pdf');
+          io.File savedFile =
+              await _saveFileToAppDirectory(_pdfFile3, 'pdf3.pdf');
           String fileName = path.basename(savedFile.path);
           _caseModel.pdf3FilePath = fileName;
         }
@@ -813,7 +820,7 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
         if (_documentFile != null && isDocChanged) {
           final extension = path.extension(_documentFile.path); // '.dart'
           io.File savedFile =
-          await _saveFileToAppDirectory(_documentFile, 'excel$extension');
+              await _saveFileToAppDirectory(_documentFile, 'excel$extension');
           String fileName = path.basename(savedFile.path);
           _caseModel.excelFilepath = fileName;
         }
@@ -851,7 +858,8 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
           await DBHelper.updateCaseDetail(_caseModel, DbManager.CDPCaseTable);
         } else if (pref.caseTypeSelected != null &&
             pref.caseTypeSelected == "Closed") {
-          await DBHelper.updateCaseDetail(_caseModel, DbManager.ClosedCaseTable);
+          await DBHelper.updateCaseDetail(
+              _caseModel, DbManager.ClosedCaseTable);
         } else if (pref.caseTypeSelected != null &&
             pref.caseTypeSelected == "Actioned by Investigator") {
           await DBHelper.updateCaseDetail(
@@ -1026,7 +1034,7 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                           Text('Insured DOB : ',
                               style:
                                   TextStyle(color: Colors.grey, fontSize: 14)),
-                          Text('${dateFormatter.format(_caseModel.insuredDob)}',
+                          Text(_caseModel.insuredDob == null ? "-" : '${dateFormatter.format(_caseModel.insuredDob)}',
                               style:
                                   TextStyle(color: Colors.black, fontSize: 14)),
                         ],
@@ -1040,7 +1048,7 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                           Text('Insured DOD : ',
                               style:
                                   TextStyle(color: Colors.grey, fontSize: 14)),
-                          Text('${dateFormatter.format(_caseModel.insuredDod)}',
+                          Text(_caseModel.insuredDod == null ? "-" : '${dateFormatter.format(_caseModel.insuredDod)}',
                               style:
                                   TextStyle(color: Colors.black, fontSize: 14)),
                         ],
@@ -2252,6 +2260,10 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                   final ByteData bytes =
                       await rootBundle.load('assets/images/ClaimForm.xlsx');
                   if (io.Platform.isAndroid) {
+                    if (!await Permission.storage.isGranted) {
+                      showAdaptiveAlertDialog(context: context, title: "Permission denied", content: "Storage permission is required to save the file to downloads.", defaultActionText: "Ok");
+                      return;
+                    }
                     String dir =
                         await ExtStorage.getExternalStoragePublicDirectory(
                             ExtStorage.DIRECTORY_DOWNLOADS);
@@ -2268,19 +2280,23 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                   }
                 } else {
                   final ByteData bytes =
-                      await rootBundle.load('assets/images/PIVReport.xls');
+                      await rootBundle.load('assets/images/PIVReport.xlsx');
                   if (io.Platform.isAndroid) {
+                    if (!await Permission.storage.isGranted) {
+                      showAdaptiveAlertDialog(context: context, title: "Permission denied", content: "Storage permission is required to save the file to downloads.", defaultActionText: "Ok");
+                      return;
+                    }
                     String dir =
                         await ExtStorage.getExternalStoragePublicDirectory(
                             ExtStorage.DIRECTORY_DOWNLOADS);
-                    io.File file = new io.File('$dir/PIVReport.xls');
+                    io.File file = new io.File('$dir/PIVReport.xlsx');
                     await file
                         .writeAsBytes(bytes.buffer.asUint8List())
                         .then((value) {
                       showSuccessToast('Saved to downloads');
                     });
                   } else {
-                    await Share.file('Doc', 'PIVReport.xls',
+                    await Share.file('Doc', 'PIVReport.xlsx',
                         bytes.buffer.asUint8List(), 'application/vnd.ms-excel',
                         text: 'PIV PIRV Report Format');
                   }

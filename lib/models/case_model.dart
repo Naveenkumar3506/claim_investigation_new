@@ -83,10 +83,14 @@ class CaseModel {
         policyNumber: json["policyNumber"],
         investigation: Investigation.fromJson(json["investigation"]),
         insuredName: json["insuredName"],
-        insuredDod: DateFormat('yyyy-MM-ddThh:mm:ss.000+00:00')
-            .parse(json["insuredDOD"]),
-        insuredDob: DateFormat('yyyy-MM-ddThh:mm:ss.000+00:00')
-            .parse(json["insuredDOB"]),
+        insuredDod: json["insuredDOD"] != null
+            ? DateFormat('yyyy-MM-ddThh:mm:ss.000+00:00')
+                .parse(json["insuredDOD"])
+            : null,
+        insuredDob: json["insuredDOB"] != null
+            ? DateFormat('yyyy-MM-ddThh:mm:ss.000+00:00')
+                .parse(json["insuredDOB"])
+            : null,
         sumAssured: json["sumAssured"],
         intimationType: json["intimationType"],
         location: Location.fromJson(json["location"]),
@@ -106,8 +110,12 @@ class CaseModel {
         signatureFilePath: json["signatureFilePath"],
         capturedDate: json["capturedDate"],
         createdBy: json["createdBy"],
-        createdDate: DateTime.parse(json["createdDate"]),
-        updatedDate: DateTime.parse(json["updatedDate"]),
+        createdDate: json["createdDate"] != null
+            ? DateTime.parse(json["createdDate"])
+            : null,
+        updatedDate: json["updatedDate"] != null
+            ? DateTime.parse(json["updatedDate"])
+            : null,
         updatedBy: json["updatedBy"],
         remarks: json["remarks"],
         image: json["image"],
@@ -159,10 +167,10 @@ class CaseModel {
         investigation:
             Investigation.fromJson(jsonDecode(json["investigation"])),
         insuredName: json["insuredName"],
-        insuredDod: DateFormat('yyyy-MM-ddThh:mm:ss.000+00:00')
-            .parse(json["insuredDOD"]),
-        insuredDob: DateFormat('yyyy-MM-ddThh:mm:ss.000+00:00')
-            .parse(json["insuredDOB"]),
+        insuredDod: json["insuredDOD"] != null ? DateFormat('yyyy-MM-ddThh:mm:ss.000+00:00')
+            .parse(json["insuredDOD"]) : null,
+        insuredDob: json["insuredDOB"] != null ? DateFormat('yyyy-MM-ddThh:mm:ss.000+00:00')
+            .parse(json["insuredDOB"]) : null,
         sumAssured: json["sumAssured"],
         intimationType: json["intimationType"],
         location: Location.fromJson(jsonDecode(json["location"])),
@@ -197,10 +205,12 @@ class CaseModel {
         "policyNumber": policyNumber,
         "investigation": jsonEncode(investigation.toJson()),
         "insuredName": insuredName,
-        "insuredDOD":
-            DateFormat('yyyy-MM-ddThh:mm:ss.000+00:00').format(insuredDod),
-        "insuredDOB":
-            DateFormat('yyyy-MM-ddThh:mm:ss.000+00:00').format(insuredDob),
+        "insuredDOD": insuredDod != null
+            ? DateFormat('yyyy-MM-ddThh:mm:ss.000+00:00').format(insuredDod)
+            : null,
+        "insuredDOB": insuredDob != null
+            ? DateFormat('yyyy-MM-ddThh:mm:ss.000+00:00').format(insuredDob)
+            : null,
         "sumAssured": sumAssured,
         "intimationType": intimationType,
         "location": jsonEncode(location.toJson()),
