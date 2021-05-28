@@ -106,7 +106,8 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
     super.initState();
     // _initAudioRecording();
     _controller.addListener(() => print("Value changed"));
-    if (_caseModel.caseStatus.toLowerCase() == "closed".toLowerCase()) {
+    if (_caseModel.caseStatus.toLowerCase() == "closed".toLowerCase() ||
+        pref.caseTypeSelected == "Actioned by Investigator") {
       isNotEditable = true;
     }
     //
@@ -564,24 +565,35 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
           });
         } */
 
-        final results = await Future.wait([
-          uploadImage(),
-          uploadImage2(),
-          uploadPDF1(),
-          uploadPDF2(),
-          uploadPDF3(),
-          uploadSign(),
-          uploadDocument(),
-          uploadAudio(),
-          uploadVideo()
-        ]);
+        // final results = await Future.wait([
+        //   uploadImage(),
+        //   uploadImage2(),
+        //   uploadPDF1(),
+        //   uploadPDF2(),
+        //   uploadPDF3(),
+        //   uploadSign(),
+        //   uploadDocument(),
+        //   uploadAudio(),
+        //   uploadVideo()
+        // ]);
 
-        /* var uploadCount = 0;
-          var resultCount = 0;
-         if (_imageFile != null) {
+        var uploadCount = 0;
+        var resultCount = 0;
+        if (_imageFile != null) {
           uploadCount++;
           await Provider.of<MultiPartUploadProvider>(context, listen: false)
               .uploadFile(_imageFile, MimeMediaType.image, _caseModel, 'image')
+              .then((isImageSuccess) async {
+            if (isImageSuccess) {
+              resultCount++;
+            }
+          });
+        }
+        if (_imageFile2 != null) {
+          uploadCount++;
+          await Provider.of<MultiPartUploadProvider>(context, listen: false)
+              .uploadFile(
+                  _imageFile2, MimeMediaType.image, _caseModel, 'image2')
               .then((isImageSuccess) async {
             if (isImageSuccess) {
               resultCount++;
@@ -632,7 +644,7 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
           uploadCount++;
           await Provider.of<MultiPartUploadProvider>(context, listen: false)
               .uploadFile(
-              _documentFile, MimeMediaType.excel, _caseModel, 'excel')
+                  _documentFile, MimeMediaType.excel, _caseModel, 'excel')
               .then((isDocSuccess) {
             if (isDocSuccess) {
               resultCount++;
@@ -643,7 +655,7 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
           uploadCount++;
           await Provider.of<MultiPartUploadProvider>(context, listen: false)
               .uploadFile(
-              _signFile, MimeMediaType.excel, _caseModel, 'signature')
+                  _signFile, MimeMediaType.excel, _caseModel, 'signature')
               .then((isSignSuccess) {
             if (isSignSuccess) {
               resultCount++;
@@ -673,13 +685,17 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
             } else {
               showErrorToast('Oops, Something went wrong. Please try again');
             }
+          }, onError: (error) {
+            Navigator.pop(context);
+            showErrorToast(error.toString());
           });
         } else {
+          Navigator.pop(context);
           showErrorToast(
               'Oops, uploading attachments failed. Please try again');
-        } */
+        }
 
-        if (results.where((element) => element == false).length == 0) {
+        /* if (results.where((element) => element == false).length == 0) {
           await Provider.of<ClaimProvider>(context, listen: false)
               .submitReport(_caseModel)
               .then((isSuccess) {
@@ -708,7 +724,7 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
           Navigator.pop(context);
           showErrorToast(
               'Oops, uploading attachments failed. Please try again');
-        }
+        }  */
       } else {
         Navigator.pop(context);
         showErrorToast('Oops, unable to get your location. Please try again');
@@ -1034,7 +1050,10 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                           Text('Insured DOB : ',
                               style:
                                   TextStyle(color: Colors.grey, fontSize: 14)),
-                          Text(_caseModel.insuredDob == null ? "-" : '${dateFormatter.format(_caseModel.insuredDob)}',
+                          Text(
+                              _caseModel.insuredDob == null
+                                  ? "-"
+                                  : '${dateFormatter.format(_caseModel.insuredDob)}',
                               style:
                                   TextStyle(color: Colors.black, fontSize: 14)),
                         ],
@@ -1048,7 +1067,10 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                           Text('Insured DOD : ',
                               style:
                                   TextStyle(color: Colors.grey, fontSize: 14)),
-                          Text(_caseModel.insuredDod == null ? "-" : '${dateFormatter.format(_caseModel.insuredDod)}',
+                          Text(
+                              _caseModel.insuredDod == null
+                                  ? "-"
+                                  : '${dateFormatter.format(_caseModel.insuredDod)}',
                               style:
                                   TextStyle(color: Colors.black, fontSize: 14)),
                         ],
@@ -1498,7 +1520,6 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                 ),
                 ElevatedButton(
                   onPressed: () async {
-                    // if (isNotEditable) {
                     if (_pdfFile1 != null) {
                       Get.toNamed(PDFViewerCachedFromUrl.routeName,
                           arguments: {"path": _pdfFile1.path});
@@ -1509,7 +1530,11 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                           arguments: {"url": _caseModel.pdf1FilePath});
                       return;
                     }
-                    //  }
+
+                    if (isNotEditable) {
+                      return;
+                    }
+                    //
                     FilePickerResult result = await FilePicker.platform
                         .pickFiles(
                             type: FileType.custom,
@@ -1533,7 +1558,8 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                     }
                   },
                   child: Text(_caseModel.pdf1FilePath != null &&
-                          _caseModel.pdf1FilePath.isNotEmpty
+                              _caseModel.pdf1FilePath.isNotEmpty ||
+                          (_pdfFile1 != null)
                       ? 'View'
                       : 'Select'),
                 )
@@ -1579,7 +1605,6 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                 ),
                 ElevatedButton(
                   onPressed: () async {
-                    // if (isNotEditable) {
                     if (_pdfFile2 != null) {
                       Get.toNamed(PDFViewerCachedFromUrl.routeName,
                           arguments: {"path": _pdfFile2.path});
@@ -1590,7 +1615,9 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                           arguments: {"url": _caseModel.pdf2FilePath});
                       return;
                     }
-                    // }
+                    if (isNotEditable) {
+                      return;
+                    }
                     FilePickerResult result = await FilePicker.platform
                         .pickFiles(
                             type: FileType.custom,
@@ -1614,7 +1641,8 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                     }
                   },
                   child: Text(_caseModel.pdf2FilePath != null &&
-                          _caseModel.pdf2FilePath.isNotEmpty
+                              _caseModel.pdf2FilePath.isNotEmpty ||
+                          (_pdfFile2 != null)
                       ? 'View'
                       : 'Select'),
                 )
@@ -1660,7 +1688,6 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                 ),
                 ElevatedButton(
                   onPressed: () async {
-                    // if (isNotEditable) {
                     if (_pdfFile3 != null) {
                       Get.toNamed(PDFViewerCachedFromUrl.routeName,
                           arguments: {"path": _pdfFile3.path});
@@ -1671,7 +1698,9 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                           arguments: {"url": _caseModel.pdf3FilePath});
                       return;
                     }
-                    // }
+                    if (isNotEditable) {
+                      return;
+                    }
                     FilePickerResult result = await FilePicker.platform
                         .pickFiles(
                             type: FileType.custom,
@@ -1696,7 +1725,8 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                     }
                   },
                   child: Text(_caseModel.pdf3FilePath != null &&
-                          _caseModel.pdf3FilePath.isNotEmpty
+                              _caseModel.pdf3FilePath.isNotEmpty ||
+                          (_pdfFile3 != null)
                       ? 'View'
                       : 'Select'),
                 )
@@ -2261,7 +2291,12 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                       await rootBundle.load('assets/images/ClaimForm.xlsx');
                   if (io.Platform.isAndroid) {
                     if (!await Permission.storage.isGranted) {
-                      showAdaptiveAlertDialog(context: context, title: "Permission denied", content: "Storage permission is required to save the file to downloads.", defaultActionText: "Ok");
+                      showAdaptiveAlertDialog(
+                          context: context,
+                          title: "Permission denied",
+                          content:
+                              "Storage permission is required to save the file to downloads.",
+                          defaultActionText: "Ok");
                       return;
                     }
                     String dir =
@@ -2283,7 +2318,12 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                       await rootBundle.load('assets/images/PIVReport.xlsx');
                   if (io.Platform.isAndroid) {
                     if (!await Permission.storage.isGranted) {
-                      showAdaptiveAlertDialog(context: context, title: "Permission denied", content: "Storage permission is required to save the file to downloads.", defaultActionText: "Ok");
+                      showAdaptiveAlertDialog(
+                          context: context,
+                          title: "Permission denied",
+                          content:
+                              "Storage permission is required to save the file to downloads.",
+                          defaultActionText: "Ok");
                       return;
                     }
                     String dir =

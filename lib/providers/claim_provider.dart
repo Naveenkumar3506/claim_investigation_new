@@ -142,7 +142,8 @@ class ClaimProvider extends BaseProvider {
           'latitude': caseModel.latitude,
           'capturedDate': DateFormat('yyyy-MM-dd').format(DateTime.now()),
           'caseid': caseModel.caseId,
-          'remarks': caseModel.newRemarks
+          'remarks': caseModel.newRemarks,
+          'submitCase': 'Y',
         },
         withAuth: false);
     return response.fold((l) {

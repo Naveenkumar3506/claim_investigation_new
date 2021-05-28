@@ -367,7 +367,7 @@ class _HomeScreenState extends BaseState<HomeScreen> {
     }
     folderPath = '${appDir.path}/${_caseModel.caseId}';
 
-    final results = await Future.wait([
+    /* final results = await Future.wait([
       uploadImage(_caseModel),
       uploadImage2(_caseModel),
       uploadPDF1(_caseModel),
@@ -377,36 +377,109 @@ class _HomeScreenState extends BaseState<HomeScreen> {
       uploadDocument(_caseModel),
       uploadAudio(_caseModel),
       uploadVideo(_caseModel)
-    ]);
+    ]); */
 
-    if (results.where((element) => element == false).length == 0) {
-      await Provider.of<ClaimProvider>(context, listen: false)
-          .submitReport(_caseModel)
-          .then((isSuccess) async {
-        if (isSuccess) {
-          // showSuccessToast('Cases Details submitted successfully');
-          DBHelper.deleteCase(_caseModel, DbManager.syncCaseTable);
-          DBHelper.deleteCase(_caseModel, DbManager.caseTable);
-          DBHelper.deleteCase(_caseModel, DbManager.PIVCaseTable);
-          DBHelper.deleteCase(_caseModel, DbManager.NewCaseTable);
-          DBHelper.deleteCase(_caseModel, DbManager.CDPCaseTable);
-          DBHelper.deleteCase(_caseModel, DbManager.ClosedCaseTable);
-          DBHelper.deleteCase(_caseModel, DbManager.InvestigatorCaseTable);
-          final dir = Directory(folderPath);
-          dir.deleteSync(recursive: true);
-          return true;
-        } else {
-          return false;
-        }
-      }, onError: (error) {
-        return false;
-      });
-    } else {
-      AppToast.toast(
-        'Sync failed ',
-      );
-      return false;
-    }
+    uploadImage(_caseModel).then((isImageSuccess) {
+      if (isImageSuccess) {
+        uploadImage2(_caseModel).then((isImage2Success) {
+          if (isImage2Success) {
+            uploadPDF1(_caseModel).then((isPDF1Success) {
+              if (isPDF1Success) {
+                uploadPDF2(_caseModel).then((isPDF2Success) {
+                  if (isPDF2Success) {
+                    uploadPDF3(_caseModel).then((isPDF3Success) {
+                      if (isPDF3Success) {
+                        uploadSign(_caseModel).then((isSignSuccess) {
+                          if (isSignSuccess) {
+                            uploadDocument(_caseModel).then((isDocSuccess) {
+                              if (isDocSuccess) {
+                                uploadAudio(_caseModel).then((isAudioSuccess) {
+                                  if (isDocSuccess) {
+                                    uploadVideo(_caseModel)
+                                        .then((isVideoSuccess) async {
+                                      if (isVideoSuccess) {
+                                        //
+                                        await Provider.of<ClaimProvider>(
+                                                context,
+                                                listen: false)
+                                            .submitReport(_caseModel)
+                                            .then((isSuccess) async {
+                                          if (isSuccess) {
+                                            DBHelper.deleteCase(_caseModel,
+                                                DbManager.syncCaseTable);
+                                            DBHelper.deleteCase(_caseModel,
+                                                DbManager.caseTable);
+                                            DBHelper.deleteCase(_caseModel,
+                                                DbManager.PIVCaseTable);
+                                            DBHelper.deleteCase(_caseModel,
+                                                DbManager.NewCaseTable);
+                                            DBHelper.deleteCase(_caseModel,
+                                                DbManager.CDPCaseTable);
+                                            DBHelper.deleteCase(_caseModel,
+                                                DbManager.ClosedCaseTable);
+                                            DBHelper.deleteCase(
+                                                _caseModel,
+                                                DbManager
+                                                    .InvestigatorCaseTable);
+                                            final dir = Directory(folderPath);
+                                            dir.deleteSync(recursive: true);
+                                            AppToast.toast(
+                                              'Sync success ',
+                                            );
+                                            return true;
+                                          } else {
+                                            return false;
+                                          }
+                                        }, onError: (error) {
+                                          return false;
+                                        });
+                                      }
+                                    });
+                                  }
+                                });
+                              }
+                            });
+                          }
+                        });
+                      }
+                    });
+                  }
+                });
+              }
+            });
+          }
+        });
+      }
+    });
+
+    // if (results.where((element) => element == false).length == 0) {
+    //   await Provider.of<ClaimProvider>(context, listen: false)
+    //       .submitReport(_caseModel)
+    //       .then((isSuccess) async {
+    //     if (isSuccess) {
+    //       // showSuccessToast('Cases Details submitted successfully');
+    //       DBHelper.deleteCase(_caseModel, DbManager.syncCaseTable);
+    //       DBHelper.deleteCase(_caseModel, DbManager.caseTable);
+    //       DBHelper.deleteCase(_caseModel, DbManager.PIVCaseTable);
+    //       DBHelper.deleteCase(_caseModel, DbManager.NewCaseTable);
+    //       DBHelper.deleteCase(_caseModel, DbManager.CDPCaseTable);
+    //       DBHelper.deleteCase(_caseModel, DbManager.ClosedCaseTable);
+    //       DBHelper.deleteCase(_caseModel, DbManager.InvestigatorCaseTable);
+    //       final dir = Directory(folderPath);
+    //       dir.deleteSync(recursive: true);
+    //       return true;
+    //     } else {
+    //       return false;
+    //     }
+    //   }, onError: (error) {
+    //     return false;
+    //   });
+    // } else {
+    //   AppToast.toast(
+    //     'Sync failed ',
+    //   );
+    //   return false;
+    // }
   }
 
 //
