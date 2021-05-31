@@ -36,8 +36,8 @@ class _LoginScreenState extends BaseState<BasePage> {
   void initState() {
     super.initState();
     setState(() {
-     // _userNameTextController.text = '6363';
-     // _passwordTextController.text = 'password';
+      // _userNameTextController.text = '6363';
+      // _passwordTextController.text = 'password';
     });
   }
 
@@ -88,6 +88,7 @@ class _LoginScreenState extends BaseState<BasePage> {
         child: Scaffold(
           appBar: AppBar(
             title: Text('Sign In'),
+            actions: [Container(padding: EdgeInsets.only(right: 10), child: Image.asset('assets/images/ic_logo.jpeg'), height: 40, width: 40,)],
           ),
           body: SingleChildScrollView(
             child: SafeArea(
