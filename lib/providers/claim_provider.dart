@@ -51,6 +51,7 @@ class ClaimProvider extends BaseProvider {
             method: ApiMethod.POST,
             body: {
               'username': pref.user.username,
+              'version': ApiConstant.API_VERSION_NUM
             },
             withAuth: false)
         .then((response) {
@@ -92,7 +93,8 @@ class ClaimProvider extends BaseProvider {
             body: {
               "username": pref.user.username,
               "pageNum": caseListPageNumber,
-              "pagesize": fetchDataSize
+              "pagesize": fetchDataSize,
+              'version': ApiConstant.API_VERSION_NUM
             },
             withAuth: false)
         .then((response) async {
@@ -144,6 +146,7 @@ class ClaimProvider extends BaseProvider {
           'caseid': caseModel.caseId,
           'remarks': caseModel.newRemarks,
           'submitCase': 'Y',
+          'version': ApiConstant.API_VERSION_NUM
         },
         withAuth: false);
     return response.fold((l) {
@@ -195,7 +198,8 @@ class ClaimProvider extends BaseProvider {
             body: {
               "username": pref.user.username,
               "pageNum": caseListPageNumber,
-              "pagesize": fetchDataSize
+              "pagesize": fetchDataSize,
+              'version': ApiConstant.API_VERSION_NUM
             },
             withAuth: false)
         .then((response) {
@@ -255,7 +259,8 @@ class ClaimProvider extends BaseProvider {
         body: {
           "username": pref.user.username,
           "latitude": lat,
-          "longitude": long
+          "longitude": long,
+          'version': ApiConstant.API_VERSION_NUM
         },
         withAuth: false);
 

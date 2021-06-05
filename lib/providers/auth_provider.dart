@@ -31,6 +31,7 @@ class AuthProvider extends BaseProvider {
         body: {
           'username': email,
           'password': password,
+          'version': ApiConstant.API_VERSION_NUM
         },
         withAuth: false);
     hideLoadingIndicator();
@@ -53,7 +54,7 @@ class AuthProvider extends BaseProvider {
     final response = await super.apiClient.callWebService(
         path: ApiConstant.API_FORGOT_PASSWORD,
         method: ApiMethod.POST,
-        body: {'username': username},
+        body: {'username': username, 'version': ApiConstant.API_VERSION_NUM},
         withAuth: false);
     hideLoadingIndicator();
     return response.fold((l) {
@@ -74,7 +75,8 @@ class AuthProvider extends BaseProvider {
         body: {
           'oldpassword': oldPassword,
           'newpassword': newPassword,
-          'username': pref.user.username
+          'username': pref.user.username,
+          'version': ApiConstant.API_VERSION_NUM
         });
     hideLoadingIndicator();
     return response.fold((l) {
