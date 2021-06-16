@@ -515,7 +515,6 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
         _caseModel.latitude = position.latitude.toStringAsFixed(5);
         _caseModel.longitude = position.longitude.toStringAsFixed(5);
         _caseModel.newRemarks = remarksTextController.text;
-
         //
         if (isImage1Changed) {
           ui.Image originalImage = ui.decodeImage(_imageFile.readAsBytesSync());
@@ -682,6 +681,20 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
               Provider.of<ClaimProvider>(SizeConfig.cxt, listen: false)
                   .getCaseList(true);
               showSuccessToast('Cases Details submitted successfully');
+              DBHelper.deleteCase(_caseModel,
+                  DbManager.caseTable);
+              DBHelper.deleteCase(_caseModel,
+                  DbManager.PIVCaseTable);
+              DBHelper.deleteCase(_caseModel,
+                  DbManager.NewCaseTable);
+              DBHelper.deleteCase(_caseModel,
+                  DbManager.CDPCaseTable);
+              DBHelper.deleteCase(_caseModel,
+                  DbManager.ClosedCaseTable);
+              DBHelper.deleteCase(
+                  _caseModel,
+                  DbManager
+                      .InvestigatorCaseTable);
             } else {
               showErrorToast('Oops, Something went wrong. Please try again');
             }
