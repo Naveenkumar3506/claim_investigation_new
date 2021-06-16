@@ -1008,6 +1008,21 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                       height: 5,
                     ),
                     Row(
+                      children: [
+                        Text(
+                          'City : ',
+                          style: TextStyle(color: Colors.grey, fontSize: 15),
+                        ),
+                        Text(
+                          '${_caseModel.location.city}',
+                          style: TextStyle(color: Colors.black, fontSize: 15),
+                        ),
+                      ],
+                    ),
+                    SizedBox(
+                      height: 5,
+                    ),
+                    Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text('Status : ',
@@ -1165,21 +1180,6 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                   title: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      SizedBox(
-                        height: 5,
-                      ),
-                      Row(
-                        children: [
-                          Text(
-                            'City : ',
-                            style: TextStyle(color: Colors.grey, fontSize: 15),
-                          ),
-                          Text(
-                            '${_caseModel.location.city}',
-                            style: TextStyle(color: Colors.black, fontSize: 15),
-                          ),
-                        ],
-                      ),
                       SizedBox(
                         height: 5,
                       ),

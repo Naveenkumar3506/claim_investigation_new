@@ -267,25 +267,25 @@ class _HomeScreenState extends BaseState<HomeScreen> {
                         itemBuilder: (_, index) {
                           if (index == 0) {
                             return itemView('PIV/PRV/LIVE count',
-                                claimProvider.reportModel.pivPrvLiveCount);
+                                claimProvider.reportModel.pivPrvLiveCount ?? 0);
                           } else if (index == 1) {
                             return itemView('New',
-                                claimProvider.reportModel.reportModelNew);
+                                claimProvider.reportModel.reportModelNew ?? 0);
                           } else if (index == 2) {
                             return itemView('Claim Document Pickup',
-                                claimProvider.reportModel.claimDocumentPickup);
+                                claimProvider.reportModel.claimDocumentPickup ?? 0);
                           } else if (index == 3) {
                             return itemView(
-                                'Closed', claimProvider.reportModel.closed);
+                                'Closed', claimProvider.reportModel.closed ?? 0);
                           } else if (index == 4) {
                             return itemView(
                                 'Actioned by Investigator',
                                 claimProvider
-                                    .reportModel.actionedByInvestigator);
+                                    .reportModel.actionedByInvestigator ?? 0);
                           }
                           return itemView('', 0);
                         },
-                        itemCount: 5,
+                        itemCount: 3,
                       ),
                     ),
                     RaisedButton(
