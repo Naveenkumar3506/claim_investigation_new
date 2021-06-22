@@ -23,8 +23,9 @@ class ApiConstant {
   static const API_GET_CDP_CASE_LIST = 'getCDPCaseList';
   static const API_GET_CLOSED_CASE_LIST = 'getCaseClosedList';
   static const API_LOCATION_UPDATE = 'locationtrack';
+  static const API_ADD_PIV_QUESTIONARIE = 'addPIVQuestionarie';
 
-  static const API_VERSION_NUM = "0.8";
+  static const API_VERSION_NUM = "1.0";
 }
 
 class ApiParam {}

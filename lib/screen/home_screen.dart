@@ -8,6 +8,8 @@ import 'package:claim_investigation/models/report_model.dart';
 import 'package:claim_investigation/providers/claim_provider.dart';
 import 'package:claim_investigation/providers/multipart_upload_provider.dart';
 import 'package:claim_investigation/screen/case_list_screen.dart';
+import 'package:claim_investigation/screen/forms_piv.dart';
+import 'package:claim_investigation/screen/otp_screen.dart';
 import 'package:claim_investigation/storage/db_helper.dart';
 import 'package:claim_investigation/storage/db_manager.dart';
 import 'package:claim_investigation/util/app_enum.dart';
@@ -272,16 +274,19 @@ class _HomeScreenState extends BaseState<HomeScreen> {
                             return itemView('New',
                                 claimProvider.reportModel.reportModelNew ?? 0);
                           } else if (index == 2) {
-                            return itemView('Claim Document Pickup',
-                                claimProvider.reportModel.claimDocumentPickup ?? 0);
-                          } else if (index == 3) {
                             return itemView(
-                                'Closed', claimProvider.reportModel.closed ?? 0);
+                                'Claim Document Pickup',
+                                claimProvider.reportModel.claimDocumentPickup ??
+                                    0);
+                          } else if (index == 3) {
+                            return itemView('Closed',
+                                claimProvider.reportModel.closed ?? 0);
                           } else if (index == 4) {
                             return itemView(
                                 'Actioned by Investigator',
                                 claimProvider
-                                    .reportModel.actionedByInvestigator ?? 0);
+                                        .reportModel.actionedByInvestigator ??
+                                    0);
                           }
                           return itemView('', 0);
                         },
@@ -319,7 +324,17 @@ class _HomeScreenState extends BaseState<HomeScreen> {
                     ),
                     SizedBox(
                       height: 5,
-                    )
+                    ),
+                    RaisedButton(
+                      color: primaryColor,
+                      onPressed: () async {
+                        Get.toNamed(OtpScreen.routeName);
+                      },
+                      child: Text(
+                        'Otp',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
                   ],
                 ),
               ),

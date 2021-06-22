@@ -9,6 +9,7 @@ import 'package:claim_investigation/base/base_page.dart';
 import 'package:claim_investigation/models/case_model.dart';
 import 'package:claim_investigation/providers/claim_provider.dart';
 import 'package:claim_investigation/providers/multipart_upload_provider.dart';
+import 'package:claim_investigation/screen/forms_piv.dart';
 import 'package:claim_investigation/screen/full_image_screen.dart';
 import 'package:claim_investigation/screen/pdfView_screen.dart';
 import 'package:claim_investigation/storage/db_helper.dart';
@@ -97,6 +98,7 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
   bool isPDF3Changed = false;
   bool isDocChanged = false;
   String folderPath = '';
+  bool isPIVFormFilled = false;
 
   @override
   void initState() {
@@ -143,7 +145,9 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
       await _getSavedFiles();
     });
     //
-    bool _validVideoURL = Uri.parse(_caseModel.videoFilePath).isAbsolute;
+    bool _validVideoURL = _caseModel.videoFilePath != null
+        ? Uri.parse(_caseModel.videoFilePath).isAbsolute
+        : false;
     if (_validVideoURL) {
       try {
         new Future.delayed(Duration(milliseconds: 500), () async {
@@ -176,22 +180,42 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
   void dispose() {
     _descFocusNode.dispose();
     timer?.cancel();
-    audioPlayer.pause();
+    if (audioPlayer != null) {
+      audioPlayer.pause();
+    }
     audioPlayer.dispose();
     hideKeyboard();
     super.dispose();
   }
 
   Future _getSavedFiles() async {
-    bool _validImageURL = Uri.parse(_caseModel.image).isAbsolute;
-    bool _validImage2URL = Uri.parse(_caseModel.image2).isAbsolute;
-    bool _validVideoURL = Uri.parse(_caseModel.videoFilePath).isAbsolute;
-    bool _validPDF1URL = Uri.parse(_caseModel.pdf1FilePath).isAbsolute;
-    bool _validPDF2URL = Uri.parse(_caseModel.pdf2FilePath).isAbsolute;
-    bool _validPDF3URL = Uri.parse(_caseModel.pdf3FilePath).isAbsolute;
-    bool _validAudioURL = Uri.parse(_caseModel.audioFilePath).isAbsolute;
-    bool _validExcelURL = Uri.parse(_caseModel.excelFilepath).isAbsolute;
-    bool _validSignURL = Uri.parse(_caseModel.signatureFilePath).isAbsolute;
+    bool _validImageURL = _caseModel.image != null
+        ? Uri.parse(_caseModel.image).isAbsolute
+        : false;
+    bool _validImage2URL = _caseModel.image2 != null
+        ? Uri.parse(_caseModel.image2).isAbsolute
+        : false;
+    bool _validVideoURL = _caseModel.videoFilePath != null
+        ? Uri.parse(_caseModel.videoFilePath).isAbsolute
+        : false;
+    bool _validPDF1URL = _caseModel.pdf1FilePath != null
+        ? Uri.parse(_caseModel.pdf1FilePath).isAbsolute
+        : false;
+    bool _validPDF2URL = _caseModel.pdf2FilePath != null
+        ? Uri.parse(_caseModel.pdf2FilePath).isAbsolute
+        : false;
+    bool _validPDF3URL = _caseModel.pdf3FilePath != null
+        ? Uri.parse(_caseModel.pdf3FilePath).isAbsolute
+        : false;
+    bool _validAudioURL = _caseModel.audioFilePath != null
+        ? Uri.parse(_caseModel.audioFilePath).isAbsolute
+        : false;
+    bool _validExcelURL = _caseModel.excelFilepath != null
+        ? Uri.parse(_caseModel.excelFilepath).isAbsolute
+        : false;
+    bool _validSignURL = _caseModel.signatureFilePath != null
+        ? Uri.parse(_caseModel.signatureFilePath).isAbsolute
+        : false;
 
     if (!_validExcelURL && _caseModel.excelFilepath.isNotEmpty) {
       _documentFile = io.File(folderPath + "/${_caseModel.excelFilepath}");
@@ -681,20 +705,12 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
               Provider.of<ClaimProvider>(SizeConfig.cxt, listen: false)
                   .getCaseList(true);
               showSuccessToast('Cases Details submitted successfully');
-              DBHelper.deleteCase(_caseModel,
-                  DbManager.caseTable);
-              DBHelper.deleteCase(_caseModel,
-                  DbManager.PIVCaseTable);
-              DBHelper.deleteCase(_caseModel,
-                  DbManager.NewCaseTable);
-              DBHelper.deleteCase(_caseModel,
-                  DbManager.CDPCaseTable);
-              DBHelper.deleteCase(_caseModel,
-                  DbManager.ClosedCaseTable);
-              DBHelper.deleteCase(
-                  _caseModel,
-                  DbManager
-                      .InvestigatorCaseTable);
+              DBHelper.deleteCase(_caseModel, DbManager.caseTable);
+              DBHelper.deleteCase(_caseModel, DbManager.PIVCaseTable);
+              DBHelper.deleteCase(_caseModel, DbManager.NewCaseTable);
+              DBHelper.deleteCase(_caseModel, DbManager.CDPCaseTable);
+              DBHelper.deleteCase(_caseModel, DbManager.ClosedCaseTable);
+              DBHelper.deleteCase(_caseModel, DbManager.InvestigatorCaseTable);
             } else {
               showErrorToast('Oops, Something went wrong. Please try again');
             }
@@ -999,7 +1015,8 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                       children: [
                         Text('IntimationType : ',
                             style: TextStyle(color: Colors.grey, fontSize: 14)),
-                        Text('${_caseModel.intimationType}',
+                        Text( _caseModel.intimationType != null
+                            ? '${_caseModel.intimationType}' : "",
                             style:
                                 TextStyle(color: Colors.black, fontSize: 14)),
                       ],
@@ -1012,7 +1029,10 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                       children: [
                         Text('InvestigationType : ',
                             style: TextStyle(color: Colors.grey, fontSize: 14)),
-                        Text('${_caseModel.investigation.investigationType}',
+                        Text(
+                            _caseModel.investigation != null
+                                ? '${_caseModel.investigation.investigationType}'
+                                : "",
                             style:
                                 TextStyle(color: Colors.black, fontSize: 14)),
                       ],
@@ -1245,9 +1265,8 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
               _buildAudioBody(),
               _buildPDFBody(),
               _buildClaimFormatBody(),
-              _caseModel.remarks.isEmpty || _caseModel.remarks == null
-                  ? Container()
-                  : Card(
+              _caseModel.remarks != null && _caseModel.remarks.isNotEmpty
+                  ? Card(
                       child: ListTile(
                         title: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1266,7 +1285,8 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
                           ],
                         ),
                       ),
-                    ),
+                    )
+                  : Container(),
               Card(
                 child: ListTile(
                   title: Column(
@@ -2262,178 +2282,207 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
 
   Widget _buildClaimFormatBody() {
     return Card(
-      child: ListTile(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(
-              height: 15,
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  _caseModel.intimationType == 'CDP'
-                      ? 'Document Pickup Form : '
-                      : 'PIV/PIRV/LIVE Form : ',
-                  style: TextStyle(color: Colors.black, fontSize: 15),
-                ),
-                _documentFile != null
-                    ? InkWell(
-                        onTap: () {
-                          setState(() {
-                            _documentFile = null;
-                            documentTextController.text = null;
+      child: _caseModel.intimationType == 'CDP'
+          ? ListTile(
+              title: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    height: 15,
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        _caseModel.intimationType == 'CDP'
+                            ? 'Document Pickup Form : '
+                            : 'PIV/PIRV/LIVE Form : ',
+                        style: TextStyle(color: Colors.black, fontSize: 15),
+                      ),
+                      _documentFile != null
+                          ? InkWell(
+                              onTap: () {
+                                setState(() {
+                                  _documentFile = null;
+                                  documentTextController.text = null;
+                                });
+                              },
+                              child: Icon(
+                                Icons.delete,
+                                color: Colors.red,
+                              ),
+                            )
+                          : SizedBox(),
+                    ],
+                  ),
+                  InkWell(
+                    onTap: () async {
+                      if (isNotEditable) {
+                        return;
+                      }
+                      if (_caseModel.intimationType == 'CDP') {
+                        final ByteData bytes = await rootBundle
+                            .load('assets/images/ClaimForm.xlsx');
+                        if (io.Platform.isAndroid) {
+                          if (!await Permission.storage.isGranted) {
+                            showAdaptiveAlertDialog(
+                                context: context,
+                                title: "Permission denied",
+                                content:
+                                    "Storage permission is required to save the file to downloads.",
+                                defaultActionText: "Ok");
+                            return;
+                          }
+                          String dir = await ExtStorage
+                              .getExternalStoragePublicDirectory(
+                                  ExtStorage.DIRECTORY_DOWNLOADS);
+                          io.File file = new io.File('$dir/ClaimForm.xlsx');
+                          await file
+                              .writeAsBytes(bytes.buffer.asUint8List())
+                              .then((value) {
+                            showSuccessToast('Saved to downloads');
                           });
-                        },
-                        child: Icon(
-                          Icons.delete,
-                          color: Colors.red,
-                        ),
-                      )
-                    : SizedBox(),
-              ],
-            ),
-            InkWell(
-              onTap: () async {
-                if (isNotEditable) {
-                  return;
-                }
-                if (_caseModel.intimationType == 'CDP') {
-                  final ByteData bytes =
-                      await rootBundle.load('assets/images/ClaimForm.xlsx');
-                  if (io.Platform.isAndroid) {
-                    if (!await Permission.storage.isGranted) {
-                      showAdaptiveAlertDialog(
-                          context: context,
-                          title: "Permission denied",
-                          content:
-                              "Storage permission is required to save the file to downloads.",
-                          defaultActionText: "Ok");
-                      return;
-                    }
-                    String dir =
-                        await ExtStorage.getExternalStoragePublicDirectory(
-                            ExtStorage.DIRECTORY_DOWNLOADS);
-                    io.File file = new io.File('$dir/ClaimForm.xlsx');
-                    await file
-                        .writeAsBytes(bytes.buffer.asUint8List())
-                        .then((value) {
-                      showSuccessToast('Saved to downloads');
-                    });
-                  } else {
-                    await Share.file('Doc', 'ClaimForm.xlsx',
-                        bytes.buffer.asUint8List(), 'application/vnd.ms-excel',
-                        text: 'Claim Form format for document collection');
-                  }
-                } else {
-                  final ByteData bytes =
-                      await rootBundle.load('assets/images/PIVReport.xlsx');
-                  if (io.Platform.isAndroid) {
-                    if (!await Permission.storage.isGranted) {
-                      showAdaptiveAlertDialog(
-                          context: context,
-                          title: "Permission denied",
-                          content:
-                              "Storage permission is required to save the file to downloads.",
-                          defaultActionText: "Ok");
-                      return;
-                    }
-                    String dir =
-                        await ExtStorage.getExternalStoragePublicDirectory(
-                            ExtStorage.DIRECTORY_DOWNLOADS);
-                    io.File file = new io.File('$dir/PIVReport.xlsx');
-                    await file
-                        .writeAsBytes(bytes.buffer.asUint8List())
-                        .then((value) {
-                      showSuccessToast('Saved to downloads');
-                    });
-                  } else {
-                    await Share.file('Doc', 'PIVReport.xlsx',
-                        bytes.buffer.asUint8List(), 'application/vnd.ms-excel',
-                        text: 'PIV PIRV Report Format');
-                  }
-                }
-              },
-              child: Text(
-                '(Sample Download)',
-                style: TextStyle(color: Colors.blue, fontSize: 15),
-              ),
-            ),
-            SizedBox(
-              height: 15,
-            ),
-            Row(
-              children: [
-                Flexible(
-                  child: TextField(
-                    controller: documentTextController,
-                    enabled: false,
-                    maxLines: 1,
-                    style: Theme.of(context).textTheme.headline3,
-                    decoration: InputDecoration(
-                      hintText: "Select File",
-                      filled: false,
+                        } else {
+                          await Share.file(
+                              'Doc',
+                              'ClaimForm.xlsx',
+                              bytes.buffer.asUint8List(),
+                              'application/vnd.ms-excel',
+                              text:
+                                  'Claim Form format for document collection');
+                        }
+                      } else {
+                        final ByteData bytes = await rootBundle
+                            .load('assets/images/PIVReport.xlsx');
+                        if (io.Platform.isAndroid) {
+                          if (!await Permission.storage.isGranted) {
+                            showAdaptiveAlertDialog(
+                                context: context,
+                                title: "Permission denied",
+                                content:
+                                    "Storage permission is required to save the file to downloads.",
+                                defaultActionText: "Ok");
+                            return;
+                          }
+                          String dir = await ExtStorage
+                              .getExternalStoragePublicDirectory(
+                                  ExtStorage.DIRECTORY_DOWNLOADS);
+                          io.File file = new io.File('$dir/PIVReport.xlsx');
+                          await file
+                              .writeAsBytes(bytes.buffer.asUint8List())
+                              .then((value) {
+                            showSuccessToast('Saved to downloads');
+                          });
+                        } else {
+                          await Share.file(
+                              'Doc',
+                              'PIVReport.xlsx',
+                              bytes.buffer.asUint8List(),
+                              'application/vnd.ms-excel',
+                              text: 'PIV PIRV Report Format');
+                        }
+                      }
+                    },
+                    child: Text(
+                      '(Sample Download)',
+                      style: TextStyle(color: Colors.blue, fontSize: 15),
                     ),
                   ),
-                ),
-                SizedBox(
-                  width: 15,
-                ),
-                ElevatedButton(
-                  onPressed: () async {
-                    if (isNotEditable) {
-                      if (_caseModel.excelFilepath != null &&
-                          _caseModel.excelFilepath.isNotEmpty) {
-                        showLoadingDialog(hint: "Downloading...");
-                        await Provider.of<ClaimProvider>(context, listen: false)
-                            .downloadFile(_caseModel.excelFilepath,
-                                'excel-${_caseModel.caseId}.xlsx')
-                            .then((value) {
-                          Navigator.pop(context);
-                          showSuccessToast('File downloaded');
-                        });
-                      }
-                      return;
-                    }
-                    FilePickerResult result =
-                        await FilePicker.platform.pickFiles(
-                            // type: FileType.custom,
-                            // allowedExtensions: ['xlsx, xls, csv'],
-                            allowCompression: true);
-                    if (result != null) {
-                      setState(() {
-                        PlatformFile platformFile = result.files.first;
-                        if (platformFile.extension == "xlsx" ||
-                            platformFile.extension == "xls" ||
-                            platformFile.extension == "csv") {
-                          _documentFile = io.File(result.files.single.path);
-                          _documentFileName = platformFile.name;
-                          documentTextController.text = _documentFileName;
-                          isDocChanged = true;
-                        } else {
-                          Get.snackbar('Alert',
-                              'Please select excel or csv files only.');
-                        }
-                      });
-                    } else {
-                      // User canceled the picker
-                    }
-                  },
-                  child: Text(isNotEditable &&
-                          _caseModel.excelFilepath != null &&
-                          _caseModel.excelFilepath.isNotEmpty
-                      ? 'Download'
-                      : 'Select'),
-                )
-              ],
+                  SizedBox(
+                    height: 15,
+                  ),
+                  Row(
+                    children: [
+                      Flexible(
+                        child: TextField(
+                          controller: documentTextController,
+                          enabled: false,
+                          maxLines: 1,
+                          style: Theme.of(context).textTheme.headline3,
+                          decoration: InputDecoration(
+                            hintText: "Select File",
+                            filled: false,
+                          ),
+                        ),
+                      ),
+                      SizedBox(
+                        width: 15,
+                      ),
+                      ElevatedButton(
+                        onPressed: () async {
+                          if (isNotEditable) {
+                            if (_caseModel.excelFilepath != null &&
+                                _caseModel.excelFilepath.isNotEmpty) {
+                              showLoadingDialog(hint: "Downloading...");
+                              await Provider.of<ClaimProvider>(context,
+                                      listen: false)
+                                  .downloadFile(_caseModel.excelFilepath,
+                                      'excel-${_caseModel.caseId}.xlsx')
+                                  .then((value) {
+                                Navigator.pop(context);
+                                showSuccessToast('File downloaded');
+                              });
+                            }
+                            return;
+                          }
+                          FilePickerResult result =
+                              await FilePicker.platform.pickFiles(
+                                  // type: FileType.custom,
+                                  // allowedExtensions: ['xlsx, xls, csv'],
+                                  allowCompression: true);
+                          if (result != null) {
+                            setState(() {
+                              PlatformFile platformFile = result.files.first;
+                              if (platformFile.extension == "xlsx" ||
+                                  platformFile.extension == "xls" ||
+                                  platformFile.extension == "csv") {
+                                _documentFile =
+                                    io.File(result.files.single.path);
+                                _documentFileName = platformFile.name;
+                                documentTextController.text = _documentFileName;
+                                isDocChanged = true;
+                              } else {
+                                Get.snackbar('Alert',
+                                    'Please select excel or csv files only.');
+                              }
+                            });
+                          } else {
+                            // User canceled the picker
+                          }
+                        },
+                        child: Text(isNotEditable &&
+                                _caseModel.excelFilepath != null &&
+                                _caseModel.excelFilepath.isNotEmpty
+                            ? 'Download'
+                            : 'Select'),
+                      )
+                    ],
+                  ),
+                  SizedBox(
+                    height: 15,
+                  ),
+                ],
+              ),
+            )
+          : ListTile(
+              title: Text(
+                "Fill the PIV/PIRV/LIVE Form:",
+                style: TextStyle(color: Colors.black),
+              ),
+              trailing: ElevatedButton(
+                child: Text( isPIVFormFilled ? "View" : " Form "),
+                onPressed: () async {
+                   final status = await Get.toNamed(PIVFormsScreen.routeName, arguments: Provider.of<ClaimProvider>(context,
+                       listen: false).pivAnswers);
+                   print("");
+                   if (status != null && status =="done") {
+                     setState(() {
+                       isPIVFormFilled = true;
+                     });
+                   }
+                },
+              ),
             ),
-            SizedBox(
-              height: 15,
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

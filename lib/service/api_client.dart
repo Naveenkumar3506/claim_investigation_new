@@ -34,7 +34,7 @@ class ApiClient {
       {@required String path,
       Encoding encoding,
       @required ApiMethod method,
-      Map<String, dynamic> body,
+      dynamic body,
       bool withAuth = true,
       File file}) async {
     Map<String, String> headers = Map();

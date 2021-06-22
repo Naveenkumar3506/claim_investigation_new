@@ -123,7 +123,7 @@ class _CaseListState extends BaseState<CaseListScreen> {
                                     Text('IntimationType : ',
                                         style: TextStyle(
                                             color: Colors.grey, fontSize: 14)),
-                                    Text('${_case.intimationType}',
+                                    Text('${_case.intimationType ?? ""}',
                                         style: TextStyle(
                                             color: Colors.black, fontSize: 14)),
                                   ],
@@ -137,7 +137,7 @@ class _CaseListState extends BaseState<CaseListScreen> {
                                         style: TextStyle(
                                             color: Colors.grey, fontSize: 14)),
                                     Text(
-                                        '${_case.investigation.investigationType}',
+                                        _case.investigation != null ? '${_case.investigation.investigationType}' : "",
                                         style: TextStyle(
                                             color: Colors.black, fontSize: 14)),
                                   ],

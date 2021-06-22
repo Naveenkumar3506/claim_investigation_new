@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ffi';
 
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
@@ -81,19 +82,23 @@ class CaseModel {
   factory CaseModel.fromJson(Map<String, dynamic> json) => CaseModel(
         caseId: json["caseId"],
         policyNumber: json["policyNumber"],
-        investigation: Investigation.fromJson(json["investigation"]),
+        investigation: json["investigation"] != null
+            ? Investigation.fromJson(json["investigation"])
+            : null,
         insuredName: json["insuredName"],
-        insuredDod: json["insuredDOD"] != null
+        insuredDod: json["insuredDOD"] != null && json["insuredDOD"] != ""
             ? DateFormat('yyyy-MM-ddThh:mm:ss.000+00:00')
                 .parse(json["insuredDOD"])
             : null,
-        insuredDob: json["insuredDOB"] != null
+        insuredDob: json["insuredDOB"] != null && json["insuredDOD"] != ""
             ? DateFormat('yyyy-MM-ddThh:mm:ss.000+00:00')
                 .parse(json["insuredDOB"])
             : null,
         sumAssured: json["sumAssured"],
         intimationType: json["intimationType"],
-        location: Location.fromJson(json["location"]),
+        location: json["location"] != null
+            ? Location.fromJson(json["location"])
+            : null,
         caseStatus: json["caseStatus"],
         nomineeName: json["nominee_Name"],
         nomineeContactNumber: json["nominee_ContactNumber"],
@@ -127,7 +132,7 @@ class CaseModel {
   Map<String, dynamic> toJson() => {
         "caseId": caseId,
         "policyNumber": policyNumber,
-        "investigation": investigation.toJson(),
+        "investigation": investigation != null ? investigation.toJson() : null,
         "insuredName": insuredName,
         "insuredDOD":
             DateFormat('yyyy-MM-ddThh:mm:ss.000+00:00').format(insuredDod),
@@ -164,16 +169,23 @@ class CaseModel {
   factory CaseModel.fromMap(Map<String, dynamic> json) => CaseModel(
         caseId: json["caseId"],
         policyNumber: json["policyNumber"],
-        investigation:
-            Investigation.fromJson(jsonDecode(json["investigation"])),
+        investigation: json["investigation"] != null
+            ? Investigation.fromJson(jsonDecode(json["investigation"]))
+            : null,
         insuredName: json["insuredName"],
-        insuredDod: json["insuredDOD"] != null ? DateFormat('yyyy-MM-ddThh:mm:ss.000+00:00')
-            .parse(json["insuredDOD"]) : null,
-        insuredDob: json["insuredDOB"] != null ? DateFormat('yyyy-MM-ddThh:mm:ss.000+00:00')
-            .parse(json["insuredDOB"]) : null,
+        insuredDod: json["insuredDOD"] != null
+            ? DateFormat('yyyy-MM-ddThh:mm:ss.000+00:00')
+                .parse(json["insuredDOD"])
+            : null,
+        insuredDob: json["insuredDOB"] != null
+            ? DateFormat('yyyy-MM-ddThh:mm:ss.000+00:00')
+                .parse(json["insuredDOB"])
+            : null,
         sumAssured: json["sumAssured"],
         intimationType: json["intimationType"],
-        location: Location.fromJson(jsonDecode(json["location"])),
+        location: json["location"] != null
+            ? Location.fromJson(jsonDecode(json["location"]))
+            : null,
         caseStatus: json["caseStatus"],
         nomineeName: json["nominee_Name"],
         nomineeContactNumber: json["nominee_ContactNumber"],
@@ -190,8 +202,12 @@ class CaseModel {
         signatureFilePath: json["signatureFilePath"],
         capturedDate: json["capturedDate"],
         createdBy: json["createdBy"],
-        createdDate: DateTime.parse(json["createdDate"]),
-        updatedDate: DateTime.parse(json["updatedDate"]),
+        createdDate: json["createdDate"] != null
+            ? DateTime.parse(json["createdDate"])
+            : null,
+        updatedDate: json["updatedDate"] != null
+            ? DateTime.parse(json["updatedDate"])
+            : null,
         updatedBy: json["updatedBy"],
         remarks: json["remarks"],
         image: json["image"],
@@ -203,7 +219,8 @@ class CaseModel {
   Map<String, dynamic> toMap() => {
         "caseId": caseId,
         "policyNumber": policyNumber,
-        "investigation": jsonEncode(investigation.toJson()),
+        "investigation":
+            investigation != null ? jsonEncode(investigation.toJson()) : null,
         "insuredName": insuredName,
         "insuredDOD": insuredDod != null
             ? DateFormat('yyyy-MM-ddThh:mm:ss.000+00:00').format(insuredDod)
@@ -213,7 +230,7 @@ class CaseModel {
             : null,
         "sumAssured": sumAssured,
         "intimationType": intimationType,
-        "location": jsonEncode(location.toJson()),
+        "location": location != null ? jsonEncode(location.toJson()) : null,
         "caseStatus": caseStatus,
         "nominee_Name": nomineeName,
         "nominee_ContactNumber": nomineeContactNumber,
@@ -231,10 +248,12 @@ class CaseModel {
         "excelFilepath": excelFilepath,
         "capturedDate": capturedDate,
         "createdBy": createdBy,
-        "createdDate":
-            DateFormat('yyyy-MM-ddThh:mm:ss.000+00:00').format(createdDate),
-        "updatedDate":
-            DateFormat('yyyy-MM-ddThh:mm:ss.000+00:00').format(updatedDate),
+        "createdDate": createdDate != null
+            ? DateFormat('yyyy-MM-ddThh:mm:ss.000+00:00').format(createdDate)
+            : null,
+        "updatedDate": updatedDate != null
+            ? DateFormat('yyyy-MM-ddThh:mm:ss.000+00:00').format(updatedDate)
+            : null,
         "updatedBy": updatedBy,
         "remarks": remarks,
         "image": image,

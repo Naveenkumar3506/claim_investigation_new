@@ -3,9 +3,12 @@ import 'package:claim_investigation/screen/case_list_screen.dart';
 import 'package:claim_investigation/screen/change_password_screen.dart';
 import 'package:claim_investigation/screen/edit_profile_screen.dart';
 import 'package:claim_investigation/screen/forgotpassword_screen.dart';
+import 'package:claim_investigation/screen/forms_piv.dart';
+import 'package:claim_investigation/screen/forms_piv_others.dart';
 import 'package:claim_investigation/screen/full_image_screen.dart';
 import 'package:claim_investigation/screen/home_screen.dart';
 import 'package:claim_investigation/screen/login_screen.dart';
+import 'package:claim_investigation/screen/otp_screen.dart';
 import 'package:claim_investigation/screen/pdfView_screen.dart';
 import 'package:claim_investigation/screen/profile_screen.dart';
 import 'package:claim_investigation/screen/tabbar_screen.dart';
@@ -86,6 +89,32 @@ class AppRouter {
             builder: (_) => FullImageViewScreen(),
             settings: settings,
             fullscreenDialog: true
+          );
+        }
+        break;
+      case PIVFormsScreen.routeName:
+        {
+          return MaterialPageRoute(
+              builder: (_) => PIVFormsScreen(),
+              settings: settings,
+              fullscreenDialog: true
+          );
+        }
+        break;
+      case PIVOthersForm.routeName:
+        {
+          return MaterialPageRoute(
+              builder: (_) => PIVOthersForm(),
+              settings: settings,
+              fullscreenDialog: true
+          );
+        }
+        break;
+      case OtpScreen.routeName:
+        {
+          return MaterialPageRoute(
+              builder: (_) => OtpScreen(),
+              settings: settings,
           );
         }
         break;

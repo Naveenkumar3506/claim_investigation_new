@@ -20,6 +20,14 @@ class ClaimProvider extends BaseProvider {
   bool _isLoadMore = false;
   ScrollController scrollController;
   ReportModel _reportModel;
+  Map<String, dynamic> _pivAnswers = {};
+
+  Map<String, dynamic> get pivAnswers => _pivAnswers;
+
+  set pivAnswers(Map<String, dynamic> value) {
+    _pivAnswers = value;
+    notifyListeners();
+  }
 
   ReportModel get reportModel => _reportModel;
 
@@ -262,6 +270,36 @@ class ClaimProvider extends BaseProvider {
           "longitude": long,
           'version': ApiConstant.API_VERSION_NUM
         },
+        withAuth: false);
+
+    response.fold((l) {
+      AppLog.print('left----> ' + l.toString());
+    }, (r) {
+      AppLog.print('right----> ' + r.toString());
+    });
+  }
+
+  Future addPIVQuestionarie(int caseId) async {
+    List<Map<String, dynamic>> questionAnswer = [];
+    pivAnswers.keys.forEach((questionHeader) {
+      List<dynamic> questions = pivAnswers[questionHeader];
+
+      questions.forEach((element) {
+        Map<String, dynamic> answer = {
+          "caseId": caseId,
+          "question_header": questionHeader,
+          "question_body": element["question"],
+          "question_remarks": element["answer"]
+        };
+        questionAnswer.add(answer);
+      });
+    });
+
+    print(questionAnswer);
+    final response = await super.apiClient.callWebService(
+        path: ApiConstant.API_ADD_PIV_QUESTIONARIE,
+        method: ApiMethod.POST,
+        body: questionAnswer,
         withAuth: false);
 
     response.fold((l) {

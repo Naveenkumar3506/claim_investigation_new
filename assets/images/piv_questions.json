@@ -1,0 +1,223 @@
+{
+  "Life Assured is Alive and in Good Health (Link)": [
+    {
+      "question": "Financial Status of Life Assured (Please mention your observation basis life style etc)",
+      "answer": "",
+      "type": "text"
+    },
+    {
+      "question": "Life Assured's Physical appearance checked",
+      "answer": "",
+      "type": "text"
+    },
+    {
+      "question": "Neighbour Check done (Neighbour check done to verify Health Status of LA)",
+      "answer": "",
+      "type": "text"
+    },
+    {
+      "question": "Photographs collected of LA/House (Proof of visit required)",
+      "answer": "",
+      "type": "text"
+    },
+    {
+      "question": "Detailed findings",
+      "answer": "",
+      "type": "text"
+    },
+    {
+      "question": "LA self-met",
+      "answer": "",
+      "type": "option"
+    }
+  ],
+  "Life Assured is Alive & Un Healthy": [
+    {
+      "question": "Details about the Disease/Illness  (Please also specify the duration)",
+      "answer": "",
+      "type": "text"
+    },
+    {
+      "question": "Financial Status of Life Assured (Please mention your observation basis life style etc)",
+      "answer": "",
+      "type": "text"
+    },
+    {
+      "question": "Life Assured's Physical appearance checked (any abnormality observed), please specify in remarks if any noted",
+      "answer": "",
+      "type": "text"
+    },
+    {
+      "question": "Vicinity Check/Neighbour Check done (Please specify the feedback like LA alive but suffering from cancer etc, or LA alive & good Health)",
+      "answer": "",
+      "type": "text"
+    },
+    {
+      "question": "Photographs collected of LA/House (Proof of visit required)",
+      "answer": "",
+      "type": "text"
+    },
+    {
+      "question": "Detailed Findings",
+      "answer": "",
+      "type": "text"
+    },
+    {
+      "question": "LA self-met",
+      "answer": "",
+      "type": "option"
+    }
+  ],
+  "Life Assured is Deceased": [
+    {
+      "question": "Details about the Disease/Illness  (Please also specify the duration)",
+      "answer": "",
+      "type": "text"
+    },
+    {
+      "question": "Financial Status of Life Assured (Please mention your observation basis life style etc)",
+      "answer": "",
+      "type": "text"
+    },
+    {
+      "question": "Details of treatment (name of hospital, doctor etc.)",
+      "answer": "",
+      "type": "text"
+    },
+    {
+      "question": "Vicinity Check/Neighbour Check done (Please specify the feedback like LA alive but suffering from cancer etc, or LA alive & good Health)",
+      "answer": "",
+      "type": "text"
+    },
+    {
+      "question": "Photographs collected of House/Nearby landmark (Proof of visit required)",
+      "answer": "",
+      "type": "text"
+    },
+    {
+      "question": "Date of death",
+      "answer": "",
+      "type": "date"
+    },
+    {
+      "question": "Place of death (please specify if hospital name gathered)",
+      "answer": "",
+      "type": "text"
+    },
+    {
+      "question": "Detailed Findings",
+      "answer": "",
+      "type": "text"
+    }
+  ],
+  "Life assured’s Address not traceable": [
+    {
+      "question": "Reason of address not traceable",
+      "answer": "",
+      "type": "text"
+    },
+    {
+      "question": "Feedback from vicinity check about life assured",
+      "answer": "",
+      "type": "text"
+    },
+    {
+      "question": "Whether house no found or not (please specify in detail)",
+      "answer": "",
+      "type": "text"
+    },
+    {
+      "question": "Detailed Findings",
+      "answer": "",
+      "type": "text"
+    }
+  ],
+  "Life assured shifted from address": [
+    {
+      "question": "Who is residing on policy address currently (Please specify alongwith feedback on health status of life assured)",
+      "answer": "",
+      "type": "text"
+    },
+    {
+      "question": "Feedback from vicinity check about life assured (please also specify when did they last saw life assured)",
+      "answer": "",
+      "type": "text"
+    },
+    {
+      "question": "When did life assured shift from address (approximate duration)",
+      "answer": "",
+      "type": "text"
+    },
+    {
+      "question": "Detailed findings",
+      "answer": "",
+      "type": "text"
+    }
+  ],
+  "Fraud (Existence not confirmed/ identity not established/Impersonation/ Pre-Policy death, Fake-Death)": [
+    {
+      "question": "Please specify the details of fraud in detail alongwith type of fraud",
+      "answer": "",
+      "type": "text"
+    },
+    {
+      "question": "Feedback from vicinity check about life assured",
+      "answer": "",
+      "type": "text"
+    },
+    {
+      "question": "Detailed findings",
+      "answer": "",
+      "type": "text"
+    }
+  ],
+  "Life Assured refused to meet/ denied for verification": [
+    {
+      "question": "Please specify the financial condition of life assured basis survey",
+      "answer": "",
+      "type": "text"
+    },
+    {
+      "question": "Feedback from vicinity check about life assured health condition",
+      "answer": "",
+      "type": "text"
+    },
+    {
+      "question": "Detailed findings",
+      "answer": "",
+      "type": "text"
+    }
+  ],
+  "Others": [
+    {
+      "question": "Do Verification with Neighbourhood/Vicinity and workplace - collect as much as information on ground about Life Assured existence, age, occupation/income, health, habit, physical appearance etc, collect information from neighbours etc.",
+      "answer": "",
+      "type": "text"
+    },
+    {
+      "question": "Detailed field Findings and feedback of field investigator/agency",
+      "answer": "",
+      "type": "text"
+    },
+    {
+      "question": "Whether LA is Smoker/Non Smoker",
+      "answer": "",
+      "type": "option"
+    },
+    {
+      "question": "Whether LA is Self Employed/Salaried",
+      "answer": "",
+      "type": "employ"
+    },
+    {
+      "question": "Education of life assured including annual income",
+      "answer": "",
+      "type": "text"
+    },
+    {
+      "question": "Other insurance policy details if any",
+      "answer": "",
+      "type": "text"
+    }
+  ]
+}
