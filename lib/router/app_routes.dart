@@ -1,4 +1,4 @@
-import 'package:claim_investigation/screen/case_detail_screen.dart';
+import 'package:claim_investigation/screen/case_details_screen.dart';
 import 'package:claim_investigation/screen/case_list_screen.dart';
 import 'package:claim_investigation/screen/change_password_screen.dart';
 import 'package:claim_investigation/screen/edit_profile_screen.dart';
@@ -48,10 +48,10 @@ class AppRouter {
               builder: (_) => CaseListScreen(), settings: settings);
         }
         break;
-      case CaseDetailScreen.routeName:
+      case CaseDetailsScreen.routeName:
         {
           return MaterialPageRoute(
-              builder: (_) => CaseDetailScreen(), settings: settings);
+              builder: (_) => CaseDetailsScreen(), settings: settings);
         }
         break;
       case ForgotPasswordScreen.routeName:

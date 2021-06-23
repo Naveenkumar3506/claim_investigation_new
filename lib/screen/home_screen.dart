@@ -325,16 +325,6 @@ class _HomeScreenState extends BaseState<HomeScreen> {
                     SizedBox(
                       height: 5,
                     ),
-                    RaisedButton(
-                      color: primaryColor,
-                      onPressed: () async {
-                        Get.toNamed(OtpScreen.routeName);
-                      },
-                      child: Text(
-                        'Otp',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -360,11 +350,11 @@ class _HomeScreenState extends BaseState<HomeScreen> {
         'Syncing offline data..',
       );
       for (CaseModel model in arrayCases) {
-        await _submitReport(model).then((success) {
-          if (!success) {
-            return;
-          }
-        });
+        // await _submitReport(model).then((success) {
+        //   if (!success) {
+        //     return;
+        //   }
+        // });
       }
     } else {
       AppToast.toast(
@@ -373,6 +363,7 @@ class _HomeScreenState extends BaseState<HomeScreen> {
     }
   }
 
+  /*
   Future<bool> _submitReport(CaseModel _caseModel) async {
     var appDir = await getApplicationDocumentsDirectory();
     if (Platform.isIOS) {
@@ -597,7 +588,7 @@ class _HomeScreenState extends BaseState<HomeScreen> {
     } else {
       return Future.value(true);
     }
-  }
+  } */
 
   Future _getDashBoard() async {
     await Provider.of<ClaimProvider>(context, listen: false)

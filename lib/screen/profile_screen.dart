@@ -155,19 +155,19 @@ class _ProfileScreenState extends BaseState<ProfileScreen> {
                   color: veryLightGrey,
                 ),
               ),
-              ListTile(
-                leading: Icon(
-                  Icons.lock,
-                  color: primaryColor,
-                ),
-                title: Text(
-                  'Change password',
-                  style: TextStyle(color: Colors.black),
-                ),
-                onTap: () {
-                  Get.toNamed(ChangePasswordScreen.routeName);
-                },
-              ),
+              // ListTile(
+              //   leading: Icon(
+              //     Icons.lock,
+              //     color: primaryColor,
+              //   ),
+              //   title: Text(
+              //     'Change password',
+              //     style: TextStyle(color: Colors.black),
+              //   ),
+              //   onTap: () {
+              //     Get.toNamed(ChangePasswordScreen.routeName);
+              //   },
+              // ),
               Expanded(child: Container()),
               Center(
                 child: Text(

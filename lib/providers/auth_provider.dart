@@ -42,9 +42,9 @@ class AuthProvider extends BaseProvider {
     }, (r) {
       AppLog.print('right----> ' + r.toString());
       currentUser = UserModel.fromJson(r);
-      // Save to preference
-      super.pref.user = currentUser;
-      notifyListeners();
+      // // Save to preference
+      // super.pref.user = currentUser;
+      // notifyListeners();
     });
     return currentUser;
   }
@@ -87,6 +87,35 @@ class AuthProvider extends BaseProvider {
       AppLog.print('right----> ' + r.toString());
       return true;
     });
+  }
+
+  Future generateOtp(UserModel userModel, int otp) async {
+    showLoadingIndicator(hint: "Requesting OTP...");
+    Map<String, dynamic> body = {
+      "REQ": {
+        "MOB": userModel.mobileNumber,
+        "AC": "SOGSCD",
+        "APPID": "website",
+        "LID": "2623511857455",
+        "BTI": "website",
+        "OTP": otp,
+        "CAT": "PAOTP",
+        "TYPE": "B",
+        "EMLID": userModel.userEmail
+      }
+    };
+
+    print(body);
+
+    final response = await http.post(ApiConstant.API_OTP,
+        body: json.encode(body));
+    hideLoadingIndicator();
+  }
+
+  void saveUser() {
+    // Save to preference
+    super.pref.user = currentUser;
+    notifyListeners();
   }
 
   void clearUserData() {

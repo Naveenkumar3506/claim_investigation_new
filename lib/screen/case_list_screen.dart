@@ -1,6 +1,6 @@
 import 'package:claim_investigation/base/base_page.dart';
 import 'package:claim_investigation/providers/claim_provider.dart';
-import 'package:claim_investigation/screen/case_detail_screen.dart';
+import 'package:claim_investigation/screen/case_details_screen.dart';
 import 'package:claim_investigation/util/app_log.dart';
 import 'package:claim_investigation/util/size_constants.dart';
 import 'package:claim_investigation/widgets/adaptive_widgets.dart';
@@ -79,7 +79,7 @@ class _CaseListState extends BaseState<CaseListScreen> {
 
                       return InkWell(
                         onTap: () {
-                          Get.toNamed(CaseDetailScreen.routeName,
+                          Get.toNamed(CaseDetailsScreen.routeName,
                               arguments: _case);
                         },
                         child: Card(

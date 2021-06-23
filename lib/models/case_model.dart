@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:ffi';
+import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
@@ -9,41 +10,32 @@ CaseModel caseModelFromJson(String str) => CaseModel.fromJson(json.decode(str));
 String caseModelToJson(CaseModel data) => json.encode(data.toJson());
 
 class CaseModel {
-  CaseModel({
-    this.caseId,
-    this.policyNumber,
-    this.investigation,
-    this.insuredName,
-    this.insuredDod,
-    this.insuredDob,
-    this.sumAssured,
-    this.intimationType,
-    this.location,
-    this.caseStatus,
-    this.nomineeName,
-    this.nomineeContactNumber,
-    this.nomineeAddress,
-    this.insuredAddress,
-    this.caseDescription,
-    this.longitude,
-    this.latitude,
-    this.pdf1FilePath,
-    this.pdf2FilePath,
-    this.pdf3FilePath,
-    this.audioFilePath,
-    this.videoFilePath,
-    this.signatureFilePath,
-    this.capturedDate,
-    this.createdBy,
-    this.createdDate,
-    this.updatedDate,
-    this.updatedBy,
-    this.remarks,
-    this.image,
-    this.excelFilepath,
-    this.newRemarks,
-    this.image2,
-  });
+  CaseModel(
+      {this.caseId,
+      this.policyNumber,
+      this.investigation,
+      this.insuredName,
+      this.insuredDod,
+      this.insuredDob,
+      this.sumAssured,
+      this.intimationType,
+      this.location,
+      this.caseStatus,
+      this.nomineeName,
+      this.nomineeContactNumber,
+      this.nomineeAddress,
+      this.insuredAddress,
+      this.caseDescription,
+      this.longitude,
+      this.latitude,
+      this.capturedDate,
+      this.createdBy,
+      this.createdDate,
+      this.updatedDate,
+      this.updatedBy,
+      this.remarks,
+      this.newRemarks,
+      this.caseDocs});
 
   int caseId;
   String policyNumber;
@@ -62,22 +54,14 @@ class CaseModel {
   String caseDescription;
   String longitude;
   String latitude;
-  String pdf1FilePath;
-  String pdf2FilePath;
-  String pdf3FilePath;
-  String audioFilePath;
-  String videoFilePath;
-  String signatureFilePath;
   String capturedDate;
   String createdBy;
   DateTime createdDate;
   DateTime updatedDate;
   String updatedBy;
   String remarks;
-  String image;
   String newRemarks;
-  String excelFilepath;
-  String image2;
+  List<CaseDoc> caseDocs;
 
   factory CaseModel.fromJson(Map<String, dynamic> json) => CaseModel(
         caseId: json["caseId"],
@@ -107,12 +91,6 @@ class CaseModel {
         caseDescription: json["case_description"],
         longitude: json["longitude"],
         latitude: json["latitude"],
-        pdf1FilePath: json["pdf1FilePath"],
-        pdf2FilePath: json["pdf2FilePath"],
-        pdf3FilePath: json["pdf3FilePath"],
-        audioFilePath: json["audioFilePath"],
-        videoFilePath: json["videoFilePath"],
-        signatureFilePath: json["signatureFilePath"],
         capturedDate: json["capturedDate"],
         createdBy: json["createdBy"],
         createdDate: json["createdDate"] != null
@@ -123,10 +101,11 @@ class CaseModel {
             : null,
         updatedBy: json["updatedBy"],
         remarks: json["remarks"],
-        image: json["image"],
-        excelFilepath: json["excelFilepath"],
         newRemarks: json["newRemarks"],
-        image2: json["image2"],
+        caseDocs: json["case_Docs"] == null
+            ? null
+            : List<CaseDoc>.from(
+                json["case_Docs"].map((x) => CaseDoc.fromJson(x))),
       );
 
   Map<String, dynamic> toJson() => {
@@ -149,12 +128,6 @@ class CaseModel {
         "case_description": caseDescription,
         "longitude": longitude,
         "latitude": latitude,
-        "pdf1FilePath": pdf1FilePath,
-        "pdf2FilePath": pdf2FilePath,
-        "pdf3FilePath": pdf3FilePath,
-        "audioFilePath": audioFilePath,
-        "videoFilePath": videoFilePath,
-        "signatureFilePath": signatureFilePath,
         "capturedDate": capturedDate,
         "createdBy": createdBy,
         "createdDate":
@@ -163,7 +136,9 @@ class CaseModel {
             DateFormat('yyyy-MM-ddThh:mm:ss.000+00:00').format(updatedDate),
         "updatedBy": updatedBy,
         "remarks": remarks,
-        "image2": image2,
+        "case_Docs": caseDocs == null
+            ? null
+            : List<dynamic>.from(caseDocs.map((x) => x.toJson())),
       };
 
   factory CaseModel.fromMap(Map<String, dynamic> json) => CaseModel(
@@ -194,12 +169,6 @@ class CaseModel {
         caseDescription: json["case_description"],
         longitude: json["longitude"],
         latitude: json["latitude"],
-        pdf1FilePath: json["pdf1FilePath"],
-        pdf2FilePath: json["pdf2FilePath"],
-        pdf3FilePath: json["pdf3FilePath"],
-        audioFilePath: json["audioFilePath"],
-        videoFilePath: json["videoFilePath"],
-        signatureFilePath: json["signatureFilePath"],
         capturedDate: json["capturedDate"],
         createdBy: json["createdBy"],
         createdDate: json["createdDate"] != null
@@ -210,10 +179,11 @@ class CaseModel {
             : null,
         updatedBy: json["updatedBy"],
         remarks: json["remarks"],
-        image: json["image"],
-        excelFilepath: json["excelFilepath"],
         newRemarks: json["newRemarks"],
-        image2: json["image2"],
+        caseDocs: json["case_Docs"] == null
+            ? null
+            : List<CaseDoc>.from(
+                jsonDecode(json["case_Docs"]).map((x) => CaseDoc.fromJson(x))),
       );
 
   Map<String, dynamic> toMap() => {
@@ -239,13 +209,6 @@ class CaseModel {
         "case_description": caseDescription,
         "longitude": longitude,
         "latitude": latitude,
-        "pdf1FilePath": pdf1FilePath,
-        "pdf2FilePath": pdf2FilePath,
-        "pdf3FilePath": pdf3FilePath,
-        "audioFilePath": audioFilePath,
-        "videoFilePath": videoFilePath,
-        "signatureFilePath": signatureFilePath,
-        "excelFilepath": excelFilepath,
         "capturedDate": capturedDate,
         "createdBy": createdBy,
         "createdDate": createdDate != null
@@ -256,9 +219,10 @@ class CaseModel {
             : null,
         "updatedBy": updatedBy,
         "remarks": remarks,
-        "image": image,
         "newRemarks": newRemarks,
-        "image2": image2,
+        "case_Docs": caseDocs == null
+            ? null
+            : jsonEncode(List<dynamic>.from(caseDocs.map((x) => x.toJson()))),
       };
 }
 
@@ -300,4 +264,54 @@ class Location {
         "state": state,
         "zone": zone,
       };
+}
+
+class CaseDoc {
+  CaseDoc({
+    this.docType,
+    this.docName,
+    this.isURL,
+  });
+
+  DocType docType;
+  String docName;
+  bool isURL;
+  Uint8List thumbnail;
+
+  factory CaseDoc.fromJson(Map<String, dynamic> json) => CaseDoc(
+      docType:
+          json["doc_type"] == null ? null : docTypeValues.map[json["doc_type"]],
+      docName: json["doc_name"] == null ? null : json["doc_name"],
+      isURL: json["isURL"] != null ? json["isURL"] : true);
+
+  Map<String, dynamic> toJson() => {
+        "doc_type": docType == null ? null : docTypeValues.reverse[docType],
+        "doc_name": docName == null ? null : docName,
+        "isURL": isURL
+      };
+}
+
+enum DocType { PDF, IMAGE, SIGNATURE, VIDEO, AUDIO, EXCEL }
+
+final docTypeValues = EnumValues({
+  "audio": DocType.AUDIO,
+  "excel": DocType.EXCEL,
+  "image": DocType.IMAGE,
+  "pdf": DocType.PDF,
+  "signature": DocType.SIGNATURE,
+  "video": DocType.VIDEO
+});
+
+class EnumValues<T> {
+  Map<String, T> map;
+  Map<T, String> reverseMap;
+
+  EnumValues(this.map);
+
+  Map<T, String> get reverse {
+    if (reverseMap == null) {
+      reverseMap = map.map((k, v) => new MapEntry(v, k));
+    }
+    return reverseMap;
+  }
 }

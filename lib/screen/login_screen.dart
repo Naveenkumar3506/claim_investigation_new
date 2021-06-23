@@ -1,14 +1,16 @@
-import 'dart:io';
+import 'dart:math';
+
 import 'package:claim_investigation/base/base_page.dart';
 import 'package:claim_investigation/models/user_model.dart';
 import 'package:claim_investigation/providers/auth_provider.dart';
-import 'package:claim_investigation/util/app_helper.dart';
+import 'package:claim_investigation/screen/otp_screen.dart';
 import 'package:claim_investigation/util/size_constants.dart';
 import 'package:claim_investigation/widgets/adaptive_widgets.dart';
 import 'package:claim_investigation/widgets/app_textfield.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:get/get.dart';
 import 'package:modal_progress_hud/modal_progress_hud.dart';
 import 'package:provider/provider.dart';
 
@@ -65,8 +67,21 @@ class _LoginScreenState extends BaseState<BasePage> {
     if (_validateInputs()) {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       try {
-        await authProvider.authenticate(_userNameTextController.text.trim(),
+        final user = await authProvider.authenticate(
+            _userNameTextController.text.trim(),
             _passwordTextController.text.trim());
+        if (user != null) {
+          var random = new Random();
+          int min = 1000,
+              max = 9999;
+          int num = min + random.nextInt(max - min);
+          authProvider.generateOtp(user, num).then((value) {
+            Get.toNamed(OtpScreen.routeName, arguments: {
+              "user": user,
+              "otp": num
+            });
+          });
+        }
       } catch (error) {
         Navigator.pop(context);
         print("mmm ${error.toString()}");
@@ -88,7 +103,12 @@ class _LoginScreenState extends BaseState<BasePage> {
         child: Scaffold(
           appBar: AppBar(
             title: Text('Sign In'),
-            actions: [Container(padding: EdgeInsets.only(right: 10), child: Image.asset('assets/images/ic_logo.jpeg'), height: 40, width: 40,)],
+            actions: [
+              Container(padding: EdgeInsets.only(right: 10),
+                child: Image.asset('assets/images/ic_logo.jpeg'),
+                height: 40,
+                width: 40,)
+            ],
           ),
           body: SingleChildScrollView(
             child: SafeArea(
@@ -122,51 +142,53 @@ class _LoginScreenState extends BaseState<BasePage> {
                         },
                       ),
                       SizedBox(height: 15),
-                      AppFormTextField(
-                        hintText: 'Enter your password',
-                        hintLabel: 'Password',
-                        controller: _passwordTextController,
-                        ctx: context,
-                        focusNode: _passwordNode,
-                        obscureText: _passwordObscureText,
-                        suffix: IconButton(
-                          icon: _passwordObscureText
-                              ? Icon(Icons.visibility)
-                              : Icon(Icons.visibility_off),
-                          onPressed: () {
-                            setState(() {
-                              _passwordObscureText = !_passwordObscureText;
-                            });
-                          },
-                        ),
-                        validator: (value) {
-                          if (value == "") {
-                            return 'Please enter password';
-                          }
-                          return null;
-                        },
-                      ),
-                      Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(vertical: 10.0),
-                          child: InkWell(
-                            child: Text(
-                              'Forgot Password?',
-                              textAlign: TextAlign.end,
-                              style: TextStyle(),
-                            ),
-                            onTap: () {
-                              Navigator.of(context)
-                                  .pushNamed(ForgotPasswordScreen.routeName);
-                            },
-                          ),
-                        )
-                      ]),
+                      // AppFormTextField(
+                      //   hintText: 'Enter your password',
+                      //   hintLabel: 'Password',
+                      //   controller: _passwordTextController,
+                      //   ctx: context,
+                      //   focusNode: _passwordNode,
+                      //   obscureText: _passwordObscureText,
+                      //   suffix: IconButton(
+                      //     icon: _passwordObscureText
+                      //         ? Icon(Icons.visibility)
+                      //         : Icon(Icons.visibility_off),
+                      //     onPressed: () {
+                      //       setState(() {
+                      //         _passwordObscureText = !_passwordObscureText;
+                      //       });
+                      //     },
+                      //   ),
+                      //   validator: (value) {
+                      //     if (value == "") {
+                      //       return 'Please enter password';
+                      //     }
+                      //     return null;
+                      //   },
+                      // ),
+                      // Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+                      //   Container(
+                      //     padding: const EdgeInsets.symmetric(vertical: 10.0),
+                      //     child: InkWell(
+                      //       child: Text(
+                      //         'Forgot Password?',
+                      //         textAlign: TextAlign.end,
+                      //         style: TextStyle(),
+                      //       ),
+                      //       onTap: () {
+                      //         Navigator.of(context)
+                      //             .pushNamed(ForgotPasswordScreen.routeName);
+                      //       },
+                      //     ),
+                      //   )
+                      // ]),
                       SizedBox(height: 10),
                       SizedBox(
                         width: double.maxFinite,
                         child: CupertinoButton(
-                          color: Theme.of(context).primaryColor,
+                          color: Theme
+                              .of(context)
+                              .primaryColor,
                           child: Text(
                             'Sign In',
                             style: TextStyle(color: Colors.white),

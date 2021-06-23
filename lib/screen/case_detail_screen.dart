@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io' as io;
-import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:audioplayers/audioplayers.dart';
@@ -15,7 +14,6 @@ import 'package:claim_investigation/screen/pdfView_screen.dart';
 import 'package:claim_investigation/storage/db_helper.dart';
 import 'package:claim_investigation/storage/db_manager.dart';
 import 'package:claim_investigation/util/app_enum.dart';
-import 'package:claim_investigation/util/app_exception.dart';
 import 'package:claim_investigation/util/app_helper.dart';
 import 'package:claim_investigation/util/color_contants.dart';
 import 'package:claim_investigation/util/size_constants.dart';
@@ -113,19 +111,6 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
       isNotEditable = true;
     }
     //
-    if (_caseModel.pdf1FilePath != null && _caseModel.pdf1FilePath.isNotEmpty) {
-      pdfName1TextController.text = 'PDF 1';
-    }
-    if (_caseModel.pdf2FilePath != null && _caseModel.pdf2FilePath.isNotEmpty) {
-      pdfName2TextController.text = 'PDF 2';
-    }
-    if (_caseModel.pdf3FilePath != null && _caseModel.pdf3FilePath.isNotEmpty) {
-      pdfName3TextController.text = 'PDF 3';
-    }
-    if (_caseModel.excelFilepath != null &&
-        _caseModel.excelFilepath.isNotEmpty) {
-      documentTextController.text = 'Excel';
-    }
     if (_caseModel.newRemarks != null && _caseModel.newRemarks.isNotEmpty) {
       remarksTextController.text = _caseModel.newRemarks;
     }
@@ -145,35 +130,35 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
       await _getSavedFiles();
     });
     //
-    bool _validVideoURL = _caseModel.videoFilePath != null
-        ? Uri.parse(_caseModel.videoFilePath).isAbsolute
-        : false;
-    if (_validVideoURL) {
-      try {
-        new Future.delayed(Duration(milliseconds: 500), () async {
-          /// Check internet connection
-          var connectivityResult = await (Connectivity().checkConnectivity());
-          if (connectivityResult == ConnectivityResult.none) {
-            return;
-          }
-          showLoadingDialog();
-          Uint8List bytes = await thumbnail.VideoThumbnail.getBytes(
-              Uri.encodeFull(_caseModel.videoFilePath));
-          io.File file = io.File("$folderPath/" + "url_thumbnail.png");
-          await file.writeAsBytes(bytes);
-          setState(() {
-            videoThumbnailPath = file.path;
-          });
-          Navigator.pop(context);
-        });
-      } on Exception catch (exception) {
-        Navigator.pop(context);
-        print(exception.toString());
-      } catch (error) {
-        Navigator.pop(context);
-        print(error.toString());
-      }
-    }
+    // bool _validVideoURL = _caseModel.videoFilePath != null
+    //     ? Uri.parse(_caseModel.videoFilePath).isAbsolute
+    //     : false;
+    // if (_validVideoURL) {
+    //   try {
+    //     new Future.delayed(Duration(milliseconds: 500), () async {
+    //       /// Check internet connection
+    //       var connectivityResult = await (Connectivity().checkConnectivity());
+    //       if (connectivityResult == ConnectivityResult.none) {
+    //         return;
+    //       }
+    //       showLoadingDialog();
+    //       Uint8List bytes = await thumbnail.VideoThumbnail.getBytes(
+    //           Uri.encodeFull(_caseModel.videoFilePath));
+    //       io.File file = io.File("$folderPath/" + "url_thumbnail.png");
+    //       await file.writeAsBytes(bytes);
+    //       setState(() {
+    //         videoThumbnailPath = file.path;
+    //       });
+    //       Navigator.pop(context);
+    //     });
+    //   } on Exception catch (exception) {
+    //     Navigator.pop(context);
+    //     print(exception.toString());
+    //   } catch (error) {
+    //     Navigator.pop(context);
+    //     print(error.toString());
+    //   }
+    // }
   }
 
   @override
@@ -189,90 +174,90 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
   }
 
   Future _getSavedFiles() async {
-    bool _validImageURL = _caseModel.image != null
-        ? Uri.parse(_caseModel.image).isAbsolute
-        : false;
-    bool _validImage2URL = _caseModel.image2 != null
-        ? Uri.parse(_caseModel.image2).isAbsolute
-        : false;
-    bool _validVideoURL = _caseModel.videoFilePath != null
-        ? Uri.parse(_caseModel.videoFilePath).isAbsolute
-        : false;
-    bool _validPDF1URL = _caseModel.pdf1FilePath != null
-        ? Uri.parse(_caseModel.pdf1FilePath).isAbsolute
-        : false;
-    bool _validPDF2URL = _caseModel.pdf2FilePath != null
-        ? Uri.parse(_caseModel.pdf2FilePath).isAbsolute
-        : false;
-    bool _validPDF3URL = _caseModel.pdf3FilePath != null
-        ? Uri.parse(_caseModel.pdf3FilePath).isAbsolute
-        : false;
-    bool _validAudioURL = _caseModel.audioFilePath != null
-        ? Uri.parse(_caseModel.audioFilePath).isAbsolute
-        : false;
-    bool _validExcelURL = _caseModel.excelFilepath != null
-        ? Uri.parse(_caseModel.excelFilepath).isAbsolute
-        : false;
-    bool _validSignURL = _caseModel.signatureFilePath != null
-        ? Uri.parse(_caseModel.signatureFilePath).isAbsolute
-        : false;
-
-    if (!_validExcelURL && _caseModel.excelFilepath.isNotEmpty) {
-      _documentFile = io.File(folderPath + "/${_caseModel.excelFilepath}");
-      documentTextController.text = 'Excel';
-    }
-    if (!_validSignURL && _caseModel.signatureFilePath.isNotEmpty) {
-      _signFile = io.File("$folderPath/${_caseModel.signatureFilePath}");
-    }
+    // bool _validImageURL = _caseModel.image != null && _caseModel.image.isNotEmpty
+    //     ? Uri.parse(_caseModel.image).isAbsolute
+    //     : false;
+    // bool _validImage2URL = _caseModel.image2 != null
+    //     ? Uri.parse(_caseModel.image2).isAbsolute
+    //     : false;
+    // bool _validVideoURL = _caseModel.videoFilePath != null
+    //     ? Uri.parse(_caseModel.videoFilePath).isAbsolute
+    //     : false;
+    // bool _validPDF1URL = _caseModel.pdf1FilePath != null
+    //     ? Uri.parse(_caseModel.pdf1FilePath).isAbsolute
+    //     : false;
+    // bool _validPDF2URL = _caseModel.pdf2FilePath != null
+    //     ? Uri.parse(_caseModel.pdf2FilePath).isAbsolute
+    //     : false;
+    // bool _validPDF3URL = _caseModel.pdf3FilePath != null
+    //     ? Uri.parse(_caseModel.pdf3FilePath).isAbsolute
+    //     : false;
+    // bool _validAudioURL = _caseModel.audioFilePath != null
+    //     ? Uri.parse(_caseModel.audioFilePath).isAbsolute
+    //     : false;
+    // bool _validExcelURL = _caseModel.excelFilepath != null && _caseModel.excelFilepath.isNotEmpty
+    //     ? Uri.parse(_caseModel.excelFilepath).isAbsolute
+    //     : false;
+    // bool _validSignURL = _caseModel.signatureFilePath != null && _caseModel.signatureFilePath.isNotEmpty
+    //     ? Uri.parse(_caseModel.signatureFilePath).isAbsolute
+    //     : false;
     //
-    if (!_validImageURL && _caseModel.image.isNotEmpty) {
-      _imageFile = io.File("$folderPath/${_caseModel.image}");
-    }
-    //
-    if (!_validImage2URL && _caseModel.image2.isNotEmpty) {
-      _imageFile2 = io.File("$folderPath/${_caseModel.image2}");
-    }
-    //
-    if (!_validAudioURL && _caseModel.audioFilePath.isNotEmpty) {
-      _audioFile =
-          localFileSystem.file("$folderPath/${_caseModel.audioFilePath}");
-    }
-    //
-    if (!_validVideoURL && _caseModel.videoFilePath.isNotEmpty) {
-      _videoFile = io.File("$folderPath/${_caseModel.videoFilePath}");
-      //
-      new Future.delayed(Duration(milliseconds: 5), () async {
-        setState(() {
-          videoThumbnailPath = folderPath + '/thumbnail.png';
-        });
-      });
-    }
-    if (!_validPDF1URL && _caseModel.pdf1FilePath.isNotEmpty) {
-      _pdfFile1 = io.File("$folderPath/${_caseModel.pdf1FilePath}");
-      String basename = path.basename(_pdfFile1.path);
-      setState(() {
-        _pdfFileName1 = basename;
-        pdfName1TextController.text = 'PDF 1';
-      });
-    }
-    if (!_validPDF2URL && _caseModel.pdf2FilePath.isNotEmpty) {
-      _pdfFile2 = io.File("$folderPath/${_caseModel.pdf2FilePath}");
-      String basename = path.basename(_pdfFile2.path);
-      setState(() {
-        _pdfFileName2 = basename;
-        pdfName2TextController.text = 'PDF 2';
-      });
-    }
-    //
-    if (!_validPDF3URL && _caseModel.pdf3FilePath.isNotEmpty) {
-      _pdfFile3 = io.File("$folderPath/${_caseModel.pdf3FilePath}");
-      String basename = path.basename(_pdfFile3.path);
-      setState(() {
-        _pdfFileName3 = basename;
-        pdfName3TextController.text = 'PDF 3';
-      });
-    }
-    setState(() {});
+    // if (!_validExcelURL) {
+    //   _documentFile = io.File(folderPath + "/${_caseModel.excelFilepath}");
+    //   documentTextController.text = 'Excel';
+    // }
+    // if (!_validSignURL) {
+    //   _signFile = io.File("$folderPath/${_caseModel.signatureFilePath}");
+    // }
+    // //
+    // if (!_validImageURL) {
+    //   _imageFile = io.File("$folderPath/${_caseModel.image}");
+    // }
+    // //
+    // if (!_validImage2URL && _caseModel.image2.isNotEmpty) {
+    //   _imageFile2 = io.File("$folderPath/${_caseModel.image2}");
+    // }
+    // //
+    // if (!_validAudioURL && _caseModel.audioFilePath.isNotEmpty) {
+    //   _audioFile =
+    //       localFileSystem.file("$folderPath/${_caseModel.audioFilePath}");
+    // }
+    // //
+    // if (!_validVideoURL && _caseModel.videoFilePath.isNotEmpty) {
+    //   _videoFile = io.File("$folderPath/${_caseModel.videoFilePath}");
+    //   //
+    //   new Future.delayed(Duration(milliseconds: 5), () async {
+    //     setState(() {
+    //       videoThumbnailPath = folderPath + '/thumbnail.png';
+    //     });
+    //   });
+    // }
+    // if (!_validPDF1URL && _caseModel.pdf1FilePath.isNotEmpty) {
+    //   _pdfFile1 = io.File("$folderPath/${_caseModel.pdf1FilePath}");
+    //   String basename = path.basename(_pdfFile1.path);
+    //   setState(() {
+    //     _pdfFileName1 = basename;
+    //     pdfName1TextController.text = 'PDF 1';
+    //   });
+    // }
+    // if (!_validPDF2URL && _caseModel.pdf2FilePath.isNotEmpty) {
+    //   _pdfFile2 = io.File("$folderPath/${_caseModel.pdf2FilePath}");
+    //   String basename = path.basename(_pdfFile2.path);
+    //   setState(() {
+    //     _pdfFileName2 = basename;
+    //     pdfName2TextController.text = 'PDF 2';
+    //   });
+    // }
+    // //
+    // if (!_validPDF3URL && _caseModel.pdf3FilePath.isNotEmpty) {
+    //   _pdfFile3 = io.File("$folderPath/${_caseModel.pdf3FilePath}");
+    //   String basename = path.basename(_pdfFile3.path);
+    //   setState(() {
+    //     _pdfFileName3 = basename;
+    //     pdfName3TextController.text = 'PDF 3';
+    //   });
+    // }
+    // setState(() {});
   }
 
   Future _initAudioRecording() async {
@@ -391,16 +376,16 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
         audioPlayerState = state;
       });
     });
-    bool _validAudioURL = Uri.parse(_caseModel.audioFilePath).isAbsolute;
-    if (_caseModel.audioFilePath != null &&
-        _caseModel.audioFilePath.isNotEmpty &&
-        _validAudioURL) {
-      await audioPlayer.play(Uri.encodeFull(_caseModel.audioFilePath));
-    } else if (_audioFile != null) {
-      await audioPlayer.play(_audioFile.path, isLocal: true);
-    } else if (_current != null) {
-      await audioPlayer.play(_current.path, isLocal: true);
-    }
+    // bool _validAudioURL = Uri.parse(_caseModel.audioFilePath).isAbsolute;
+    // if (_caseModel.audioFilePath != null &&
+    //     _caseModel.audioFilePath.isNotEmpty &&
+    //     _validAudioURL) {
+    //   await audioPlayer.play(Uri.encodeFull(_caseModel.audioFilePath));
+    // } else if (_audioFile != null) {
+    //   await audioPlayer.play(_audioFile.path, isLocal: true);
+    // } else if (_current != null) {
+    //   await audioPlayer.play(_current.path, isLocal: true);
+    // }
   }
 
   void onStopAudio() async {
@@ -809,7 +794,7 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
             io.File savedFile =
                 await _saveFileToAppDirectory(_videoFile, 'video.mp4');
             String fileName = path.basename(savedFile.path);
-            _caseModel.videoFilePath = fileName;
+           // _caseModel.videoFilePath = fileName;
           }
 
           /* final tapiocaBalls = [
@@ -828,60 +813,60 @@ class _CaseDetailScreenState extends BaseState<CaseDetailScreen> {
         _caseModel.caseDescription = descTextController.text;
         _caseModel.newRemarks = remarksTextController.text;
 
-        if (_imageFile != null) {
-          // io.File savedFile =
-          //     await _saveFileToAppDirectory(_imageFile, 'image.png');
-          String fileName = path.basename(_imageFile.path);
-          _caseModel.image = fileName;
-        }
-
-        if (_imageFile2 != null) {
-          // io.File savedFile = await _saveFileToAppDirectory(_imageFile2, 'image2.png');
-          String fileName = path.basename(_imageFile2.path);
-          _caseModel.image2 = fileName;
-        }
-
-        if (_pdfFile1 != null && isPDF1Changed) {
-          io.File savedFile =
-              await _saveFileToAppDirectory(_pdfFile1, 'pdf1.pdf');
-          String fileName = path.basename(savedFile.path);
-          _caseModel.pdf1FilePath = fileName;
-        }
-
-        if (_pdfFile2 != null && isPDF2Changed) {
-          io.File savedFile =
-              await _saveFileToAppDirectory(_pdfFile2, 'pdf2.pdf');
-          String fileName = path.basename(savedFile.path);
-          _caseModel.pdf2FilePath = fileName;
-        }
-
-        if (_pdfFile3 != null && isPDF3Changed) {
-          io.File savedFile =
-              await _saveFileToAppDirectory(_pdfFile3, 'pdf3.pdf');
-          String fileName = path.basename(savedFile.path);
-          _caseModel.pdf3FilePath = fileName;
-        }
-
-        if (_documentFile != null && isDocChanged) {
-          final extension = path.extension(_documentFile.path); // '.dart'
-          io.File savedFile =
-              await _saveFileToAppDirectory(_documentFile, 'excel$extension');
-          String fileName = path.basename(savedFile.path);
-          _caseModel.excelFilepath = fileName;
-        }
-
-        if (_signFile != null) {
-          // io.File savedFile = await _saveFileToAppDirectory(_signFile, 'sign.png');
-          String fileName = path.basename(_signFile.path);
-          _caseModel.signatureFilePath = fileName;
-        }
-
-        if (_audioFile != null) {
-          // final extension = path.extension(_audioFile.path); // '.dart'
-          // io.File savedFile = await _saveFileToAppDirectory(_audioFile, 'audio.$extension');
-          String fileName = path.basename(_audioFile.path);
-          _caseModel.audioFilePath = fileName;
-        }
+        // if (_imageFile != null) {
+        //   // io.File savedFile =
+        //   //     await _saveFileToAppDirectory(_imageFile, 'image.png');
+        //   String fileName = path.basename(_imageFile.path);
+        //   _caseModel.image = fileName;
+        // }
+        //
+        // if (_imageFile2 != null) {
+        //   // io.File savedFile = await _saveFileToAppDirectory(_imageFile2, 'image2.png');
+        //   String fileName = path.basename(_imageFile2.path);
+        //   _caseModel.image2 = fileName;
+        // }
+        //
+        // if (_pdfFile1 != null && isPDF1Changed) {
+        //   io.File savedFile =
+        //       await _saveFileToAppDirectory(_pdfFile1, 'pdf1.pdf');
+        //   String fileName = path.basename(savedFile.path);
+        //   _caseModel.pdf1FilePath = fileName;
+        // }
+        //
+        // if (_pdfFile2 != null && isPDF2Changed) {
+        //   io.File savedFile =
+        //       await _saveFileToAppDirectory(_pdfFile2, 'pdf2.pdf');
+        //   String fileName = path.basename(savedFile.path);
+        //   _caseModel.pdf2FilePath = fileName;
+        // }
+        //
+        // if (_pdfFile3 != null && isPDF3Changed) {
+        //   io.File savedFile =
+        //       await _saveFileToAppDirectory(_pdfFile3, 'pdf3.pdf');
+        //   String fileName = path.basename(savedFile.path);
+        //   _caseModel.pdf3FilePath = fileName;
+        // }
+        //
+        // if (_documentFile != null && isDocChanged) {
+        //   final extension = path.extension(_documentFile.path); // '.dart'
+        //   io.File savedFile =
+        //       await _saveFileToAppDirectory(_documentFile, 'excel$extension');
+        //   String fileName = path.basename(savedFile.path);
+        //   _caseModel.excelFilepath = fileName;
+        // }
+        //
+        // if (_signFile != null) {
+        //   // io.File savedFile = await _saveFileToAppDirectory(_signFile, 'sign.png');
+        //   String fileName = path.basename(_signFile.path);
+        //   _caseModel.signatureFilePath = fileName;
+        // }
+        //
+        // if (_audioFile != null) {
+        //   // final extension = path.extension(_audioFile.path); // '.dart'
+        //   // io.File savedFile = await _saveFileToAppDirectory(_audioFile, 'audio.$extension');
+        //   String fileName = path.basename(_audioFile.path);
+        //   _caseModel.audioFilePath = fileName;
+        // }
 
         if (_thumbnail != null) {
           await _saveThumbnail(_thumbnail);
