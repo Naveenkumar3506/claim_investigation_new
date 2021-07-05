@@ -6,9 +6,13 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:claim_investigation/base/base_page.dart';
 import 'package:claim_investigation/models/case_model.dart';
 import 'package:claim_investigation/providers/claim_provider.dart';
+import 'package:claim_investigation/providers/multipart_upload_provider.dart';
 import 'package:claim_investigation/screen/forms_piv.dart';
 import 'package:claim_investigation/screen/full_image_screen.dart';
 import 'package:claim_investigation/screen/pdfView_screen.dart';
+import 'package:claim_investigation/storage/db_helper.dart';
+import 'package:claim_investigation/storage/db_manager.dart';
+import 'package:claim_investigation/util/app_enum.dart';
 import 'package:claim_investigation/util/app_helper.dart';
 import 'package:claim_investigation/util/size_constants.dart';
 import 'package:claim_investigation/widgets/adaptive_widgets.dart';
@@ -21,6 +25,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_audio_recorder/flutter_audio_recorder.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
@@ -30,6 +35,8 @@ import 'package:provider/provider.dart';
 import 'package:signature/signature.dart';
 import 'package:video_thumbnail/video_thumbnail.dart';
 import 'package:claim_investigation/util/color_contants.dart';
+import 'package:image/image.dart' as ui;
+import 'package:path/path.dart' as path;
 
 class CaseDetailsScreen extends BasePage {
   static const routeName = '/caseDetailScreen';
@@ -72,6 +79,7 @@ class _CaseDetailsScreenState extends BaseState<CaseDetailsScreen> {
   String _documentFileName;
 
   void initState() {
+    Provider.of<ClaimProvider>(context, listen: false).pivAnswers = null;
     _caseModel = Get.arguments;
     descTextController.text = _caseModel.caseDescription;
     remarksTextController.text = _caseModel.newRemarks;
@@ -86,30 +94,6 @@ class _CaseDetailsScreenState extends BaseState<CaseDetailsScreen> {
       remarksTextController.text = _caseModel.newRemarks;
     }
 
-    //
-    listImageDoc = _caseModel.caseDocs != null
-        ? _caseModel.caseDocs
-            .where((element) => element.docType == DocType.IMAGE)
-            .toList()
-        : [];
-    listVideoDoc = _caseModel.caseDocs != null
-        ? _caseModel.caseDocs
-            .where((element) => element.docType == DocType.VIDEO)
-            .toList()
-        : [];
-    listPDFDoc = _caseModel.caseDocs != null
-        ? _caseModel.caseDocs
-            .where((element) => element.docType == DocType.PDF)
-            .toList()
-        : [];
-
-    if (_caseModel.caseDocs != null &&
-        _caseModel.caseDocs
-            .where((element) => element.docType == DocType.PDF)
-            .toList()
-            .isNotEmpty) {}
-    //
-
     new Future.delayed(Duration(milliseconds: 50), () async {
       if (!await Permission.storage.isGranted) {
         await Permission.storage.request();
@@ -121,7 +105,67 @@ class _CaseDetailsScreenState extends BaseState<CaseDetailsScreen> {
         appDir = await getExternalStorageDirectory();
       }
       folderPath = await _createFolder('${appDir.path}/${_caseModel.caseId}');
+      await _getSavedFiles();
     });
+  }
+
+  _getSavedFiles() {
+    //
+    listImageDoc = _caseModel.caseDocs != null
+        ? _caseModel.caseDocs
+            .where((element) => element.docType == DocType.IMAGE)
+            .toList()
+        : [];
+    for (var imageDoc in listImageDoc) {
+      if (!imageDoc.isURL) {
+        imageDoc.docName = folderPath + "/" + imageDoc.docName;
+      }
+    }
+
+    //
+    listVideoDoc = _caseModel.caseDocs != null
+        ? _caseModel.caseDocs
+            .where((element) => element.docType == DocType.VIDEO)
+            .toList()
+        : [];
+    for (var videoDoc in listVideoDoc) {
+      if (!videoDoc.isURL) {
+        videoDoc.docName = folderPath + "/" + videoDoc.docName;
+      }
+    }
+
+    listPDFDoc = _caseModel.caseDocs != null
+        ? _caseModel.caseDocs
+            .where((element) => element.docType == DocType.PDF)
+            .toList()
+        : [];
+    for (var pdfDoc in listPDFDoc) {
+      if (!pdfDoc.isURL) {
+        pdfDoc.docName = folderPath + "/" + pdfDoc.docName;
+      }
+    }
+    //
+    final audioDoc = _caseModel.caseDocs != null
+        ? _caseModel.caseDocs
+            .where((element) =>
+                element.docType == DocType.AUDIO && element.isURL == false)
+            .toList()
+        : [];
+    if (audioDoc.isNotEmpty) {
+      _audioFile =
+          localFileSystem.file("$folderPath/${audioDoc.first.docName}");
+    }
+
+    final excelDoc = _caseModel.caseDocs != null
+        ? _caseModel.caseDocs
+            .where((element) => element.docType == DocType.EXCEL)
+            .toList()
+        : [];
+    if (excelDoc.isNotEmpty) {
+      _documentFile = io.File(folderPath + "/${excelDoc.first.docName}");
+      documentTextController.text = 'Excel';
+    }
+    setState(() {});
   }
 
   Future _initAudioRecording() async {
@@ -239,16 +283,22 @@ class _CaseDetailsScreenState extends BaseState<CaseDetailsScreen> {
         audioPlayerState = state;
       });
     });
-    // bool _validAudioURL = Uri.parse(_caseModel.audioFilePath).isAbsolute;
     if (_audioFile != null) {
       await audioPlayer.play(_audioFile.path, isLocal: true);
-    } else if (_current != null) {
-      await audioPlayer.play(_current.path, isLocal: true);
+    } else {
+      final audioDocs = _caseModel.caseDocs != null
+          ? _caseModel.caseDocs
+              .where((element) =>
+                  element.docType == DocType.AUDIO && element.isURL)
+              .toList()
+          : [];
+      if (audioDocs.isNotEmpty) {
+        await audioPlayer.play(Uri.encodeFull(audioDocs.first.docName));
+      }
     }
-    // else if (_caseModel. != null &&
-    // _caseModel.audioFilePath.isNotEmpty &&
-    // _validAudioURL) {
-    //   await audioPlayer.play(Uri.encodeFull(_caseModel.audioFilePath));
+
+    // else if (_current != null) {
+    // await audioPlayer.play(_current.path, isLocal: true);
     // }
   }
 
@@ -256,6 +306,339 @@ class _CaseDetailsScreenState extends BaseState<CaseDetailsScreen> {
     if (audioPlayer != null) {
       audioPlayer.stop();
     }
+  }
+
+  Future<Position> _determinePosition() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      /* showAdaptiveAlertDialog(
+        context: context,
+        title: "Alert",
+        content: "Location is mandatory.",
+        defaultActionText: "Settings",
+        cancelActionText: "Cancel",
+        defaultAction: () {
+          Geolocator.openAppSettings();
+        },
+      ); */
+      return Future.error('Location services are disabled.');
+    }
+
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.deniedForever) {
+      return Future.error(
+          'Location permissions are permanently denied, we cannot request permissions.');
+    }
+
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission != LocationPermission.whileInUse &&
+          permission != LocationPermission.always) {
+        return Future.error(
+            'Location permissions are denied. Go to settings and enable the location for the app');
+      }
+    }
+
+    return await Geolocator.getCurrentPosition();
+  }
+
+  Future _onSubmitReport() async {
+    if (isNotEditable) {
+      return;
+    }
+    hideKeyboard();
+    showLoadingDialog();
+    await _determinePosition().then((position) async {
+      if (position != null) {
+        _caseModel.caseDescription = descTextController.text;
+        _caseModel.latitude = position.latitude.toStringAsFixed(5);
+        _caseModel.longitude = position.longitude.toStringAsFixed(5);
+        _caseModel.newRemarks = remarksTextController.text;
+
+        final listNewImages =
+            listImageDoc.where((element) => element.isURL == false).toList();
+
+        List<CaseDoc> listWaterMarkImages = [];
+        for (var imageDoc in listNewImages) {
+          ui.Image originalImage =
+              ui.decodeImage(io.File(imageDoc.docName).readAsBytesSync());
+          ui.drawString(
+            originalImage,
+            ui.arial_48,
+            originalImage.width - 500,
+            originalImage.height - 100,
+            '${_caseModel.latitude}, ${_caseModel.longitude}',
+          );
+          // Store the watermarked image to a File
+          List<int> wmImage = ui.encodePng(originalImage);
+          await _createWaterMarkFileFromString(wmImage).then((value) {
+            imageDoc.docName = value.path;
+            listWaterMarkImages.add(imageDoc);
+          });
+        }
+
+        var uploadCount = 0;
+        var resultCount = 0;
+        for (var imageDoc in listWaterMarkImages) {
+          uploadCount++;
+          await Provider.of<MultiPartUploadProvider>(context, listen: false)
+              .uploadFile(io.File(imageDoc.docName), MimeMediaType.image,
+                  _caseModel, 'image')
+              .then((isImageSuccess) async {
+            if (isImageSuccess) {
+              resultCount++;
+            }
+          });
+        }
+        //
+        if (_audioFile != null) {
+          uploadCount++;
+          await Provider.of<MultiPartUploadProvider>(context, listen: false)
+              .uploadFile(_audioFile, MimeMediaType.audio, _caseModel, 'audio')
+              .then((isAudioSuccess) async {
+            if (isAudioSuccess) {
+              resultCount++;
+            }
+          });
+        }
+        //
+        final listNewPDFs =
+            listPDFDoc.where((element) => element.isURL == false).toList();
+        for (var pdfDoc in listNewPDFs) {
+          uploadCount++;
+          await Provider.of<MultiPartUploadProvider>(context, listen: false)
+              .uploadFile(
+                  io.File(pdfDoc.docName), MimeMediaType.pdf, _caseModel, 'pdf')
+              .then((isImageSuccess) async {
+            if (isImageSuccess) {
+              resultCount++;
+            }
+          });
+        }
+        //
+        if (_documentFile != null) {
+          uploadCount++;
+          await Provider.of<MultiPartUploadProvider>(context, listen: false)
+              .uploadFile(
+                  _documentFile, MimeMediaType.excel, _caseModel, 'excel')
+              .then((isDocSuccess) {
+            if (isDocSuccess) {
+              resultCount++;
+            }
+          });
+        }
+        if (_signFile != null) {
+          uploadCount++;
+          await Provider.of<MultiPartUploadProvider>(context, listen: false)
+              .uploadFile(
+                  _signFile, MimeMediaType.excel, _caseModel, 'signature')
+              .then((isSignSuccess) {
+            if (isSignSuccess) {
+              resultCount++;
+            }
+          });
+        }
+        //
+        final listNewVideos =
+            listVideoDoc.where((element) => element.isURL == false).toList();
+        for (var videoDoc in listNewVideos) {
+          uploadCount++;
+          await Provider.of<MultiPartUploadProvider>(context, listen: false)
+              .uploadFile(io.File(videoDoc.docName), MimeMediaType.video,
+                  _caseModel, 'video')
+              .then((isImageSuccess) async {
+            if (isImageSuccess) {
+              resultCount++;
+            }
+          });
+        }
+
+        if (resultCount == uploadCount) {
+          await Provider.of<ClaimProvider>(context, listen: false)
+              .submitReport(_caseModel)
+              .then((isSuccess) async {
+            Navigator.pop(context);
+            DBHelper.deleteCase(_caseModel, DbManager.caseTable);
+            DBHelper.deleteCase(_caseModel, DbManager.PIVCaseTable);
+            DBHelper.deleteCase(_caseModel, DbManager.NewCaseTable);
+            DBHelper.deleteCase(_caseModel, DbManager.CDPCaseTable);
+            DBHelper.deleteCase(_caseModel, DbManager.ClosedCaseTable);
+            DBHelper.deleteCase(_caseModel, DbManager.InvestigatorCaseTable);
+            //
+            await Provider.of<ClaimProvider>(context, listen: false)
+                .getCaseFromDB()
+                .then((value) {
+            });
+            //
+            Provider.of<ClaimProvider>(context, listen: false).notifyModel();
+            Get.back();
+            showSuccessToast('Cases Details submitted successfully');
+          });
+        } else {
+          Navigator.pop(context);
+          showErrorToast(
+              'Oops, uploading attachments failed. Please try again');
+        }
+      } else {
+        Navigator.pop(context);
+        showErrorToast('Oops, unable to get your location. Please try again');
+      }
+    }, onError: (error) {
+      Navigator.pop(context);
+      showErrorToast(error.toString());
+    });
+  }
+
+  Future saveDraft() async {
+    showLoadingDialog(hint: 'Saving data...');
+    await _determinePosition().then((position) async {
+      if (position != null) {
+        _caseModel.caseDescription = descTextController.text;
+        _caseModel.latitude = position.latitude.toStringAsFixed(5);
+        _caseModel.longitude = position.longitude.toStringAsFixed(5);
+        _caseModel.newRemarks = remarksTextController.text;
+
+        // Saving image to app folder
+        final listNewImages =
+            listImageDoc.where((element) => element.isURL == false).toList();
+        List<CaseDoc> listWaterMarkImages = [];
+        for (var imageDoc in listNewImages) {
+          ui.Image originalImage =
+              ui.decodeImage(io.File(imageDoc.docName).readAsBytesSync());
+          ui.drawString(
+            originalImage,
+            ui.arial_48,
+            originalImage.width - 500,
+            originalImage.height - 100,
+            '${_caseModel.latitude}, ${_caseModel.longitude}',
+          );
+          // Store the watermarked image to a File
+          List<int> wmImage = ui.encodePng(originalImage);
+          await _createWaterMarkFileFromString(wmImage).then((value) {
+            String fileName = path.basename(value.path);
+            imageDoc.docName = fileName;
+            listWaterMarkImages.add(imageDoc);
+          });
+        }
+        // Saving pdf to app folder
+        final listNewPDFs =
+            listPDFDoc.where((element) => element.isURL == false).toList();
+        for (var pdfDoc in listNewPDFs) {
+          io.File savedFile =
+              await _saveFileToAppDirectory(io.File(pdfDoc.docName), pdfDoc);
+          String fileName = path.basename(savedFile.path);
+          pdfDoc.docName = fileName;
+        }
+        // Saving videos to app folder
+        final listNewVideos =
+            listVideoDoc.where((element) => element.isURL == false).toList();
+        for (var videoDoc in listNewVideos) {
+          io.File savedFile = await _saveFileToAppDirectory(
+              io.File(videoDoc.docName), videoDoc);
+          String fileName = path.basename(savedFile.path);
+          videoDoc.docName = fileName;
+        }
+
+        List<CaseDoc> listValidImages = _caseModel.caseDocs != null
+            ? _caseModel.caseDocs
+                .where((element) =>
+                    element.docType == DocType.IMAGE && element.isURL)
+                .toList()
+            : [];
+        List<CaseDoc> listValidVideos = _caseModel.caseDocs != null
+            ? _caseModel.caseDocs
+                .where((element) =>
+                    element.docType == DocType.VIDEO && element.isURL)
+                .toList()
+            : [];
+        List<CaseDoc> listValidPDFs = _caseModel.caseDocs != null
+            ? _caseModel.caseDocs
+                .where((element) =>
+                    element.docType == DocType.PDF && element.isURL)
+                .toList()
+            : [];
+        //
+
+        List<CaseDoc> newCaseDoc = [];
+        newCaseDoc.addAll(listValidImages);
+        newCaseDoc.addAll(listWaterMarkImages);
+        //
+        newCaseDoc.addAll(listValidVideos);
+        newCaseDoc.addAll(listNewVideos);
+        //
+        newCaseDoc.addAll(listValidPDFs);
+        newCaseDoc.addAll(listNewPDFs);
+        // Saving audio to app folder
+        if (_audioFile != null) {
+          var newAudio = CaseDoc();
+          newAudio.isURL = false;
+          newAudio.docType = DocType.AUDIO;
+          // newAudio.docName = _audioFile.path;
+          io.File savedFile =
+              await _saveFileToAppDirectory(_audioFile, newAudio);
+          String fileName = path.basename(savedFile.path);
+          newAudio.docName = fileName;
+          newCaseDoc.add(newAudio);
+        }
+        // Saving sign to app folder
+        if (_signFile != null) {
+          var newSign = CaseDoc();
+          newSign.isURL = false;
+          newSign.docType = DocType.SIGNATURE;
+          // newSign.docName = _signFile.path;
+          io.File savedFile = await _saveFileToAppDirectory(_signFile, newSign);
+          String fileName = path.basename(savedFile.path);
+          newSign.docName = fileName;
+          newCaseDoc.add(newSign);
+        }
+        // Saving excel to app folder
+        if (_documentFile != null) {
+          var newExcel = CaseDoc();
+          newExcel.isURL = false;
+          newExcel.docType = DocType.EXCEL;
+          // newExcel.docName = _documentFile.path;
+          io.File savedFile =
+              await _saveFileToAppDirectory(_documentFile, newExcel);
+          String fileName = path.basename(savedFile.path);
+          newExcel.docName = fileName;
+          newCaseDoc.add(newExcel);
+        }
+        //
+        if (newCaseDoc.isNotEmpty) {
+          _caseModel.caseDocs = newCaseDoc;
+        }
+        await DBHelper.saveCase(_caseModel, DbManager.syncCaseTable);
+        print(pref.caseTypeSelected);
+        //
+        if (pref.caseTypeSelected != null && pref.caseTypeSelected == 'All') {
+          await DBHelper.updateCaseDetail(_caseModel, DbManager.caseTable);
+        } else if (pref.caseTypeSelected != null &&
+            pref.caseTypeSelected == 'PIV/PRV/LIVE count') {
+          await DBHelper.updateCaseDetail(_caseModel, DbManager.PIVCaseTable);
+        } else if (pref.caseTypeSelected != null &&
+            pref.caseTypeSelected == "New") {
+          await DBHelper.updateCaseDetail(_caseModel, DbManager.NewCaseTable);
+        } else if (pref.caseTypeSelected != null &&
+            pref.caseTypeSelected == "Claim Document Pickup") {
+          await DBHelper.updateCaseDetail(_caseModel, DbManager.CDPCaseTable);
+        } else if (pref.caseTypeSelected != null &&
+            pref.caseTypeSelected == "Closed") {
+          await DBHelper.updateCaseDetail(
+              _caseModel, DbManager.ClosedCaseTable);
+        } else if (pref.caseTypeSelected != null &&
+            pref.caseTypeSelected == "Actioned by Investigator") {
+          await DBHelper.updateCaseDetail(
+              _caseModel, DbManager.InvestigatorCaseTable);
+        }
+        Navigator.pop(context);
+      }
+    }, onError: (error) {
+      Navigator.pop(context);
+      showErrorToast(error.toString());
+    });
   }
 
   @override
@@ -313,12 +696,12 @@ class _CaseDetailsScreenState extends BaseState<CaseDetailsScreen> {
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('IntimationType : ',
+                          Text('Nature of Investigation : ',
                               style:
                                   TextStyle(color: Colors.grey, fontSize: 14)),
                           Text(
-                              _caseModel.intimationType != null
-                                  ? '${_caseModel.intimationType}'
+                              _caseModel.investigationNature != null
+                                  ? '${_caseModel.investigationNature.natureOfInvestigationType ?? ""}'
                                   : "",
                               style:
                                   TextStyle(color: Colors.black, fontSize: 14)),
@@ -334,8 +717,8 @@ class _CaseDetailsScreenState extends BaseState<CaseDetailsScreen> {
                               style:
                                   TextStyle(color: Colors.grey, fontSize: 14)),
                           Text(
-                              _caseModel.investigation != null
-                                  ? '${_caseModel.investigation.investigationType}'
+                              _caseModel.investigationType != null
+                                  ? '${_caseModel.investigationType}'
                                   : "",
                               style:
                                   TextStyle(color: Colors.black, fontSize: 14)),
@@ -400,6 +783,23 @@ class _CaseDetailsScreenState extends BaseState<CaseDetailsScreen> {
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            Text('Insured Gender : ',
+                                style: TextStyle(
+                                    color: Colors.grey, fontSize: 14)),
+                            Text(
+                                _caseModel.gender == null
+                                    ? "-"
+                                    : _caseModel.gender,
+                                style: TextStyle(
+                                    color: Colors.black, fontSize: 14)),
+                          ],
+                        ),
+                        SizedBox(
+                          height: 5,
+                        ),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
                             Text('Insured DOB : ',
                                 style: TextStyle(
                                     color: Colors.grey, fontSize: 14)),
@@ -417,13 +817,37 @@ class _CaseDetailsScreenState extends BaseState<CaseDetailsScreen> {
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Insured DOD : ',
+                            Text(
+                                _caseModel.investigationType == "CDP"
+                                    ? 'Insured DOD: '
+                                    : 'Insured Diagnosis Date: ',
                                 style: TextStyle(
                                     color: Colors.grey, fontSize: 14)),
                             Text(
-                                _caseModel.insuredDod == null
+                                _caseModel.investigationType == "CDP"
+                                    ? _caseModel.insuredDod == null
+                                        ? "-"
+                                        : '${dateFormatter.format(_caseModel.insuredDod)}'
+                                    : _caseModel.insuredDiagnosisDate == null
+                                        ? "-"
+                                        : '${dateFormatter.format(_caseModel.insuredDiagnosisDate)}',
+                                style: TextStyle(
+                                    color: Colors.black, fontSize: 14)),
+                          ],
+                        ),
+                        SizedBox(
+                          height: 5,
+                        ),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Insured Mobile : ',
+                                style: TextStyle(
+                                    color: Colors.grey, fontSize: 14)),
+                            Text(
+                                _caseModel.insuredMob == null
                                     ? "-"
-                                    : '${dateFormatter.format(_caseModel.insuredDod)}',
+                                    : _caseModel.insuredMob,
                                 style: TextStyle(
                                     color: Colors.black, fontSize: 14)),
                           ],
@@ -623,7 +1047,7 @@ class _CaseDetailsScreenState extends BaseState<CaseDetailsScreen> {
                         style: TextStyle(color: Colors.white),
                       ),
                       onPressed: () {
-                        // _onSubmitReport();
+                        _onSubmitReport();
                       },
                     ),
                   ),
@@ -641,7 +1065,7 @@ class _CaseDetailsScreenState extends BaseState<CaseDetailsScreen> {
                               style: TextStyle(color: Colors.white),
                             ),
                             onPressed: () {
-                              // saveDraft();
+                              saveDraft();
                             },
                           ),
                         ),
@@ -1140,22 +1564,22 @@ class _CaseDetailsScreenState extends BaseState<CaseDetailsScreen> {
                               ),
                             ),
                           ),
-                          Positioned(top: 110, child: Text("Added PDF")),
+                          Positioned(top: 110, child: Text("View PDF")),
                           Positioned(
                             top: 5,
                             right: 5,
                             child: !doc.isURL
                                 ? InkWell(
-                              child: Icon(
-                                Icons.remove_circle,
-                                color: Colors.red,
-                              ),
-                              onTap: () {
-                                setState(() {
-                                  listPDFDoc.remove(doc);
-                                });
-                              },
-                            )
+                                    child: Icon(
+                                      Icons.remove_circle,
+                                      color: Colors.red,
+                                    ),
+                                    onTap: () {
+                                      setState(() {
+                                        listPDFDoc.remove(doc);
+                                      });
+                                    },
+                                  )
                                 : Container(),
                           )
                         ]),
@@ -1174,61 +1598,61 @@ class _CaseDetailsScreenState extends BaseState<CaseDetailsScreen> {
                 } else {
                   // Add image
                   return InkWell(
-                    child: Card(
-                      child: Container(
-                        padding: EdgeInsets.all(5.0),
-                        width: 160,
-                        height: 160,
-                        child: Stack(alignment: Alignment.center, children: [
-                          // Container(
-                          //   decoration: BoxDecoration(
-                          //       border: Border.all(color: Colors.grey)),
-                          // ),
-                          Positioned(
-                            top: 20,
-                            child: SizedBox(
-                              height: 80,
-                              width: 80,
-                              child: Image.asset(
-                                'assets/images/ic_pdf_placeholder.png',
+                      child: Card(
+                        child: Container(
+                          padding: EdgeInsets.all(5.0),
+                          width: 160,
+                          height: 160,
+                          child: Stack(alignment: Alignment.center, children: [
+                            // Container(
+                            //   decoration: BoxDecoration(
+                            //       border: Border.all(color: Colors.grey)),
+                            // ),
+                            Positioned(
+                              top: 20,
+                              child: SizedBox(
+                                height: 80,
+                                width: 80,
+                                child: Image.asset(
+                                  'assets/images/ic_pdf_placeholder.png',
+                                ),
                               ),
                             ),
-                          ),
-                          Positioned(top: 110, child: Text("Add PDF"))
-                        ]),
+                            Positioned(top: 110, child: Text("Add PDF"))
+                          ]),
+                        ),
                       ),
-                    ),
-                    onTap: () async {
-                      if (isNotEditable) {
-                        return;
-                      }
-                      hideKeyboard();
-                      //
-                      FilePickerResult result = await FilePicker.platform
-                          .pickFiles(
-                          type: FileType.custom,
-                          allowedExtensions: ['pdf'],
-                          allowCompression: true);
-                      if (result != null) {
-                        setState(() {
-                          PlatformFile platformFile = result.files.first;
-                          if (platformFile.extension == "pdf") {
-                            final _pdfFile = io.File(result.files.single.path);
-                            var newPDF = CaseDoc();
-                            newPDF.isURL = false;
-                            newPDF.docName = platformFile.path;
-                            newPDF.docType = DocType.PDF;
-                            listPDFDoc.add(newPDF);
-                          } else {
-                            Get.snackbar(
-                                'Alert', 'Please select PDF files only.');
-                          }
-                        });
-                      } else {
-                        // User canceled the picker
-                      }
-                    }
-                  );
+                      onTap: () async {
+                        if (isNotEditable) {
+                          return;
+                        }
+                        hideKeyboard();
+                        //
+                        FilePickerResult result = await FilePicker.platform
+                            .pickFiles(
+                                type: FileType.custom,
+                                allowedExtensions: ['pdf'],
+                                allowCompression: true);
+                        if (result != null) {
+                          setState(() {
+                            PlatformFile platformFile = result.files.first;
+                            if (platformFile.extension == "pdf") {
+                              final _pdfFile =
+                                  io.File(result.files.single.path);
+                              var newPDF = CaseDoc();
+                              newPDF.isURL = false;
+                              newPDF.docName = platformFile.path;
+                              newPDF.docType = DocType.PDF;
+                              listPDFDoc.add(newPDF);
+                            } else {
+                              Get.snackbar(
+                                  'Alert', 'Please select PDF files only.');
+                            }
+                          });
+                        } else {
+                          // User canceled the picker
+                        }
+                      });
                 }
               },
             ),
@@ -1240,7 +1664,7 @@ class _CaseDetailsScreenState extends BaseState<CaseDetailsScreen> {
 
   Widget _buildClaimFormatBody() {
     return Card(
-      child: _caseModel.intimationType == 'CDP'
+      child: _caseModel.investigationType == 'CDP'
           ? ListTile(
               title: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1252,7 +1676,7 @@ class _CaseDetailsScreenState extends BaseState<CaseDetailsScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        _caseModel.intimationType == 'CDP'
+                        _caseModel.investigationType == 'CDP'
                             ? 'Document Pickup Form : '
                             : 'PIV/PIRV/LIVE Form : ',
                         style: TextStyle(color: Colors.black, fontSize: 15),
@@ -1278,7 +1702,7 @@ class _CaseDetailsScreenState extends BaseState<CaseDetailsScreen> {
                       if (isNotEditable) {
                         return;
                       }
-                      if (_caseModel.intimationType == 'CDP') {
+                      if (_caseModel.investigationType == 'CDP') {
                         final ByteData bytes = await rootBundle
                             .load('assets/images/ClaimForm.xlsx');
                         if (io.Platform.isAndroid) {
@@ -1440,10 +1864,9 @@ class _CaseDetailsScreenState extends BaseState<CaseDetailsScreen> {
               trailing: ElevatedButton(
                 child: Text(isPIVFormFilled ? "View" : " Form "),
                 onPressed: () async {
-                  final status = await Get.toNamed(PIVFormsScreen.routeName,
-                      arguments:
-                          Provider.of<ClaimProvider>(context, listen: false)
-                              .pivAnswers);
+                  final status =
+                      await Get.toNamed(PIVFormsScreen.routeName, arguments: _caseModel.caseId
+                  );
                   print("");
                   if (status != null && status == "done") {
                     setState(() {
@@ -1489,6 +1912,37 @@ class _CaseDetailsScreenState extends BaseState<CaseDetailsScreen> {
     io.File file = io.File("$folderPath/" + "sign.png");
     await file.writeAsBytes(bytes);
     return file;
+  }
+
+  Future<io.File> _createWaterMarkFileFromString(Uint8List bytes) async {
+    io.File file = io.File("$folderPath/" +
+        "image_${DateTime.now().millisecondsSinceEpoch.toString()}.png");
+    await file.writeAsBytes(bytes);
+    return file;
+  }
+
+  Future<io.File> _saveFileToAppDirectory(io.File file, CaseDoc caseDoc) async {
+    final extension = path.extension(file.path);
+    if (caseDoc.docType == DocType.IMAGE) {
+      return await file.copy(
+          '$folderPath/image_${DateTime.now().millisecondsSinceEpoch.toString()}.png');
+    } else if (caseDoc.docType == DocType.VIDEO) {
+      return await file.copy(
+          '$folderPath/video_${DateTime.now().millisecondsSinceEpoch.toString()}.mp4');
+    } else if (caseDoc.docType == DocType.PDF) {
+      return await file.copy(
+          '$folderPath/PDF_${DateTime.now().millisecondsSinceEpoch.toString()}.pdf');
+    } else if (caseDoc.docType == DocType.EXCEL) {
+      return await file.copy(
+          '$folderPath/excel_${DateTime.now().millisecondsSinceEpoch.toString()}$extension');
+    } else if (caseDoc.docType == DocType.SIGNATURE) {
+      return await file.copy(
+          '$folderPath/sign_${DateTime.now().millisecondsSinceEpoch.toString()}.png');
+    } else if (caseDoc.docType == DocType.AUDIO) {
+      return await file.copy(
+          '$folderPath/audio_${DateTime.now().millisecondsSinceEpoch.toString()}$extension');
+    }
+    return null;
   }
 
   Widget _buildSignatureBody() {

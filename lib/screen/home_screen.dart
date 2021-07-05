@@ -1,26 +1,19 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
-
+import 'dart:io' as io;
+import 'package:file/local.dart';
 import 'package:claim_investigation/base/base_page.dart';
 import 'package:claim_investigation/models/case_model.dart';
-import 'package:claim_investigation/models/report_model.dart';
 import 'package:claim_investigation/providers/claim_provider.dart';
 import 'package:claim_investigation/providers/multipart_upload_provider.dart';
 import 'package:claim_investigation/screen/case_list_screen.dart';
-import 'package:claim_investigation/screen/forms_piv.dart';
-import 'package:claim_investigation/screen/otp_screen.dart';
 import 'package:claim_investigation/storage/db_helper.dart';
 import 'package:claim_investigation/storage/db_manager.dart';
 import 'package:claim_investigation/util/app_enum.dart';
-import 'package:claim_investigation/util/app_helper.dart';
 import 'package:claim_investigation/util/app_toast.dart';
 import 'package:claim_investigation/util/color_contants.dart';
 import 'package:claim_investigation/util/size_constants.dart';
 import 'package:claim_investigation/widgets/adaptive_widgets.dart';
 import 'package:connectivity/connectivity.dart';
-import 'package:file/local.dart';
-import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
@@ -28,7 +21,6 @@ import 'package:get/get.dart';
 import 'package:modal_progress_hud/modal_progress_hud.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:version/version.dart';
 
 class HomeScreen extends BasePage {
   static const routeName = '/homeScreen';
@@ -79,7 +71,7 @@ class _HomeScreenState extends BaseState<HomeScreen> {
 
     Future.delayed(Duration(milliseconds: 50)).then((value) async {
       var appDir = await getApplicationDocumentsDirectory();
-      if (Platform.isIOS) {
+      if (io.Platform.isIOS) {
         appDir = await getApplicationDocumentsDirectory();
       } else {
         appDir = await getExternalStorageDirectory();
@@ -181,7 +173,7 @@ class _HomeScreenState extends BaseState<HomeScreen> {
         pref.caseTypeSelected = title;
         showLoadingDialog();
         await Provider.of<ClaimProvider>(SizeConfig.cxt, listen: false)
-            .getNewCaseList(true, title)
+            .getCategoryWiseCaseList(true, title)
             .then((value) async {
           await Provider.of<ClaimProvider>(context, listen: false)
               .getCaseFromDB()
@@ -249,7 +241,7 @@ class _HomeScreenState extends BaseState<HomeScreen> {
           child: Consumer<ClaimProvider>(builder: (_, claimProvider, child) {
             if (claimProvider.reportModel == null) {
               return Center(
-                child: Platform.isAndroid
+                child: io.Platform.isAndroid
                     ? const CircularProgressIndicator()
                     : const CupertinoActivityIndicator(radius: 15),
               );
@@ -350,11 +342,11 @@ class _HomeScreenState extends BaseState<HomeScreen> {
         'Syncing offline data..',
       );
       for (CaseModel model in arrayCases) {
-        // await _submitReport(model).then((success) {
-        //   if (!success) {
-        //     return;
-        //   }
-        // });
+        await _submitReport(model).then((success) {
+          if (!success) {
+            return;
+          }
+        });
       }
     } else {
       AppToast.toast(
@@ -363,232 +355,182 @@ class _HomeScreenState extends BaseState<HomeScreen> {
     }
   }
 
-  /*
   Future<bool> _submitReport(CaseModel _caseModel) async {
     var appDir = await getApplicationDocumentsDirectory();
-    if (Platform.isIOS) {
+    if (io.Platform.isIOS) {
       appDir = await getApplicationDocumentsDirectory();
     } else {
       appDir = await getExternalStorageDirectory();
     }
     folderPath = '${appDir.path}/${_caseModel.caseId}';
 
-    /* final results = await Future.wait([
-      uploadImage(_caseModel),
-      uploadImage2(_caseModel),
-      uploadPDF1(_caseModel),
-      uploadPDF2(_caseModel),
-      uploadPDF3(_caseModel),
-      uploadSign(_caseModel),
-      uploadDocument(_caseModel),
-      uploadAudio(_caseModel),
-      uploadVideo(_caseModel)
-    ]); */
-
-    uploadImage(_caseModel).then((isImageSuccess) {
-      if (isImageSuccess) {
-        uploadImage2(_caseModel).then((isImage2Success) {
-          if (isImage2Success) {
-            uploadPDF1(_caseModel).then((isPDF1Success) {
-              if (isPDF1Success) {
-                uploadPDF2(_caseModel).then((isPDF2Success) {
-                  if (isPDF2Success) {
-                    uploadPDF3(_caseModel).then((isPDF3Success) {
-                      if (isPDF3Success) {
-                        uploadSign(_caseModel).then((isSignSuccess) {
-                          if (isSignSuccess) {
-                            uploadDocument(_caseModel).then((isDocSuccess) {
-                              if (isDocSuccess) {
-                                uploadAudio(_caseModel).then((isAudioSuccess) {
-                                  if (isDocSuccess) {
-                                    uploadVideo(_caseModel)
-                                        .then((isVideoSuccess) async {
-                                      if (isVideoSuccess) {
-                                        //
-                                        await Provider.of<ClaimProvider>(
-                                                context,
-                                                listen: false)
-                                            .submitReport(_caseModel)
-                                            .then((isSuccess) async {
-                                          if (isSuccess) {
-                                            DBHelper.deleteCase(_caseModel,
-                                                DbManager.syncCaseTable);
-                                            DBHelper.deleteCase(_caseModel,
-                                                DbManager.caseTable);
-                                            DBHelper.deleteCase(_caseModel,
-                                                DbManager.PIVCaseTable);
-                                            DBHelper.deleteCase(_caseModel,
-                                                DbManager.NewCaseTable);
-                                            DBHelper.deleteCase(_caseModel,
-                                                DbManager.CDPCaseTable);
-                                            DBHelper.deleteCase(_caseModel,
-                                                DbManager.ClosedCaseTable);
-                                            DBHelper.deleteCase(
-                                                _caseModel,
-                                                DbManager
-                                                    .InvestigatorCaseTable);
-                                            final dir = Directory(folderPath);
-                                            dir.deleteSync(recursive: true);
-                                            AppToast.toast(
-                                              'Sync success ',
-                                            );
-                                            return true;
-                                          } else {
-                                            return false;
-                                          }
-                                        }, onError: (error) {
-                                          return false;
-                                        });
-                                      }
-                                    });
-                                  }
-                                });
-                              }
-                            });
-                          }
-                        });
-                      }
-                    });
-                  }
-                });
-              }
-            });
-          }
-        });
-      }
-    });
-
-    // if (results.where((element) => element == false).length == 0) {
-    //   await Provider.of<ClaimProvider>(context, listen: false)
-    //       .submitReport(_caseModel)
-    //       .then((isSuccess) async {
-    //     if (isSuccess) {
-    //       // showSuccessToast('Cases Details submitted successfully');
-    //       DBHelper.deleteCase(_caseModel, DbManager.syncCaseTable);
-    //       DBHelper.deleteCase(_caseModel, DbManager.caseTable);
-    //       DBHelper.deleteCase(_caseModel, DbManager.PIVCaseTable);
-    //       DBHelper.deleteCase(_caseModel, DbManager.NewCaseTable);
-    //       DBHelper.deleteCase(_caseModel, DbManager.CDPCaseTable);
-    //       DBHelper.deleteCase(_caseModel, DbManager.ClosedCaseTable);
-    //       DBHelper.deleteCase(_caseModel, DbManager.InvestigatorCaseTable);
-    //       final dir = Directory(folderPath);
-    //       dir.deleteSync(recursive: true);
-    //       return true;
-    //     } else {
-    //       return false;
-    //     }
-    //   }, onError: (error) {
-    //     return false;
-    //   });
-    // } else {
-    //   AppToast.toast(
-    //     'Sync failed ',
-    //   );
-    //   return false;
-    // }
-  }
-
-//
-  Future<bool> uploadImage(CaseModel _caseModel) async {
-    bool _validImageURL = Uri.parse(_caseModel.image).isAbsolute;
-    if (!_validImageURL && _caseModel.image.isNotEmpty) {
-      return await Provider.of<MultiPartUploadProvider>(context, listen: false)
-          .uploadFile(File("$folderPath/${_caseModel.image}"),
-              MimeMediaType.image, _caseModel, 'image');
-    } else {
-      return Future.value(true);
+    // Get saved images
+    List<CaseDoc> listImageDoc = _caseModel.caseDocs != null
+        ? _caseModel.caseDocs
+            .where((element) =>
+                element.docType == DocType.IMAGE && element.isURL == false)
+            .toList()
+        : [];
+    for (var imageDoc in listImageDoc) {
+      imageDoc.docName = folderPath + "/" + imageDoc.docName;
     }
-  }
-
-  Future<bool> uploadImage2(CaseModel _caseModel) async {
-    bool _validImageURL = Uri.parse(_caseModel.image2).isAbsolute;
-    if (!_validImageURL && _caseModel.image2.isNotEmpty) {
-      return await Provider.of<MultiPartUploadProvider>(context, listen: false)
-          .uploadFile(File("$folderPath/${_caseModel.image2}"),
-              MimeMediaType.image, _caseModel, 'image2');
-    } else {
-      return Future.value(true);
-    }
-  }
-
-  Future<bool> uploadVideo(CaseModel _caseModel) async {
-    bool _validVideoURL = Uri.parse(_caseModel.videoFilePath).isAbsolute;
-    if (!_validVideoURL && _caseModel.videoFilePath.isNotEmpty) {
-      return await Provider.of<MultiPartUploadProvider>(context, listen: false)
-          .uploadFile(File("$folderPath/${_caseModel.videoFilePath}"),
-              MimeMediaType.video, _caseModel, 'video');
-    } else {
-      return Future.value(true);
-    }
-  }
-
-  Future<bool> uploadAudio(CaseModel _caseModel) async {
-    bool _validAudioURL = Uri.parse(_caseModel.audioFilePath).isAbsolute;
-    if (!_validAudioURL && _caseModel.audioFilePath.isNotEmpty) {
+    // Get saved audio
+    io.File _audioFile;
+    final audioDoc = _caseModel.caseDocs != null
+        ? _caseModel.caseDocs
+            .where((element) =>
+                element.docType == DocType.AUDIO && element.isURL == false)
+            .toList()
+        : [];
+    if (audioDoc.isNotEmpty) {
       final LocalFileSystem localFileSystem = LocalFileSystem();
-      File _audioFile =
-          localFileSystem.file("$folderPath/${_caseModel.audioFilePath}");
-      return await Provider.of<MultiPartUploadProvider>(context, listen: false)
-          .uploadFile(_audioFile, MimeMediaType.audio, _caseModel, 'audio');
+      _audioFile =
+          localFileSystem.file("$folderPath/${audioDoc.first.docName}");
+    }
+    // Get saved video
+    List<CaseDoc> listVideoDoc = _caseModel.caseDocs != null
+        ? _caseModel.caseDocs
+            .where((element) =>
+                element.docType == DocType.VIDEO && element.isURL == false)
+            .toList()
+        : [];
+    for (var videoDoc in listVideoDoc) {
+      videoDoc.docName = folderPath + "/" + videoDoc.docName;
+    }
+    // Get saved pdf
+    List<CaseDoc> listPDFDoc = _caseModel.caseDocs != null
+        ? _caseModel.caseDocs
+            .where((element) =>
+                element.docType == DocType.PDF && element.isURL == false)
+            .toList()
+        : [];
+    for (var pdfDoc in listPDFDoc) {
+      pdfDoc.docName = folderPath + "/" + pdfDoc.docName;
+    }
+    // Get saved excel
+    io.File _documentFile;
+    final excelDoc = _caseModel.caseDocs != null
+        ? _caseModel.caseDocs
+        .where((element) => element.docType == DocType.EXCEL && element.isURL == false)
+        .toList()
+        : [];
+    if (excelDoc.isNotEmpty) {
+      _documentFile = io.File(folderPath + "/${excelDoc.first.docName}");
+    }
+    // Get saved excel
+    io.File _signFile;
+    final signDoc = _caseModel.caseDocs != null
+        ? _caseModel.caseDocs
+        .where((element) => element.docType == DocType.SIGNATURE && element.isURL == false)
+        .toList()
+        : [];
+    if (signDoc.isNotEmpty) {
+      _signFile = io.File(folderPath + "/${signDoc.first.docName}");
+    }
+
+    var uploadCount = 0;
+    var resultCount = 0;
+    for (var imageDoc in listImageDoc) {
+      uploadCount++;
+      await Provider.of<MultiPartUploadProvider>(context, listen: false)
+          .uploadFile(io.File(imageDoc.docName), MimeMediaType.image,
+              _caseModel, 'image')
+          .then((isImageSuccess) async {
+        if (isImageSuccess) {
+          resultCount++;
+        }
+      });
+    }
+    //
+    if (_audioFile != null) {
+      uploadCount++;
+      await Provider.of<MultiPartUploadProvider>(context, listen: false)
+          .uploadFile(_audioFile, MimeMediaType.audio, _caseModel, 'audio')
+          .then((isAudioSuccess) async {
+        if (isAudioSuccess) {
+          resultCount++;
+        }
+      });
+    }
+    //
+    final listNewPDFs =
+        listPDFDoc.where((element) => element.isURL == false).toList();
+    for (var pdfDoc in listNewPDFs) {
+      uploadCount++;
+      await Provider.of<MultiPartUploadProvider>(context, listen: false)
+          .uploadFile(
+              io.File(pdfDoc.docName), MimeMediaType.pdf, _caseModel, 'pdf')
+          .then((isImageSuccess) async {
+        if (isImageSuccess) {
+          resultCount++;
+        }
+      });
+    }
+    //
+    if (_documentFile != null) {
+      uploadCount++;
+      await Provider.of<MultiPartUploadProvider>(context, listen: false)
+          .uploadFile(_documentFile, MimeMediaType.excel, _caseModel, 'excel')
+          .then((isDocSuccess) {
+        if (isDocSuccess) {
+          resultCount++;
+        }
+      });
+    }
+    if (_signFile != null) {
+      uploadCount++;
+      await Provider.of<MultiPartUploadProvider>(context, listen: false)
+          .uploadFile(_signFile, MimeMediaType.excel, _caseModel, 'signature')
+          .then((isSignSuccess) {
+        if (isSignSuccess) {
+          resultCount++;
+        }
+      });
+    }
+    //
+    final listNewVideos =
+        listVideoDoc.where((element) => element.isURL == false).toList();
+    for (var videoDoc in listNewVideos) {
+      uploadCount++;
+      await Provider.of<MultiPartUploadProvider>(context, listen: false)
+          .uploadFile(io.File(videoDoc.docName), MimeMediaType.video,
+              _caseModel, 'video')
+          .then((isImageSuccess) async {
+        if (isImageSuccess) {
+          resultCount++;
+        }
+      });
+    }
+    //
+    if (resultCount == uploadCount) {
+      await Provider.of<ClaimProvider>(context, listen: false)
+          .submitReport(_caseModel)
+          .then((isSuccess) async {
+        if (isSuccess) {
+          // showSuccessToast('Cases Details submitted successfully');
+          DBHelper.deleteCase(_caseModel, DbManager.syncCaseTable);
+          DBHelper.deleteCase(_caseModel, DbManager.caseTable);
+          DBHelper.deleteCase(_caseModel, DbManager.PIVCaseTable);
+          DBHelper.deleteCase(_caseModel, DbManager.NewCaseTable);
+          DBHelper.deleteCase(_caseModel, DbManager.CDPCaseTable);
+          DBHelper.deleteCase(_caseModel, DbManager.ClosedCaseTable);
+          DBHelper.deleteCase(_caseModel, DbManager.InvestigatorCaseTable);
+          final dir = io.Directory(folderPath);
+          dir.deleteSync(recursive: true);
+          return true;
+        } else {
+          return false;
+        }
+      }, onError: (error) {
+        return false;
+      });
     } else {
-      return Future.value(true);
+      AppToast.toast(
+        'Sync failed ',
+      );
+      return false;
     }
   }
-
-  Future<bool> uploadPDF1(CaseModel _caseModel) async {
-    bool _validPDF1URL = Uri.parse(_caseModel.pdf1FilePath).isAbsolute;
-    if (!_validPDF1URL && _caseModel.pdf1FilePath.isNotEmpty) {
-      return await Provider.of<MultiPartUploadProvider>(context, listen: false)
-          .uploadFile(File("$folderPath/${_caseModel.pdf1FilePath}"),
-              MimeMediaType.pdf, _caseModel, 'pdf1');
-    } else {
-      return Future.value(true);
-    }
-  }
-
-  Future<bool> uploadPDF2(CaseModel _caseModel) async {
-    bool _validPDF2URL = Uri.parse(_caseModel.pdf2FilePath).isAbsolute;
-    if (!_validPDF2URL && _caseModel.pdf2FilePath.isNotEmpty) {
-      return await Provider.of<MultiPartUploadProvider>(context, listen: false)
-          .uploadFile(File("$folderPath/${_caseModel.pdf2FilePath}"),
-              MimeMediaType.pdf, _caseModel, 'pdf2');
-    } else {
-      return Future.value(true);
-    }
-  }
-
-  Future<bool> uploadPDF3(CaseModel _caseModel) async {
-    bool _validPDF3URL = Uri.parse(_caseModel.pdf3FilePath).isAbsolute;
-    if (!_validPDF3URL && _caseModel.pdf3FilePath.isNotEmpty) {
-      return await Provider.of<MultiPartUploadProvider>(context, listen: false)
-          .uploadFile(File("$folderPath/${_caseModel.pdf3FilePath}"),
-              MimeMediaType.pdf, _caseModel, 'pdf3');
-    } else {
-      return Future.value(true);
-    }
-  }
-
-  Future<bool> uploadDocument(CaseModel _caseModel) async {
-    bool _validExcelURL = Uri.parse(_caseModel.excelFilepath).isAbsolute;
-    if (!_validExcelURL && _caseModel.excelFilepath.isNotEmpty) {
-      return await Provider.of<MultiPartUploadProvider>(context, listen: false)
-          .uploadFile(File("$folderPath/${_caseModel.excelFilepath}"),
-              MimeMediaType.excel, _caseModel, 'excel');
-    } else {
-      return Future.value(true);
-    }
-  }
-
-  Future<bool> uploadSign(CaseModel _caseModel) async {
-    bool _validSignURL = Uri.parse(_caseModel.signatureFilePath).isAbsolute;
-    if (!_validSignURL && _caseModel.signatureFilePath.isNotEmpty) {
-      return await Provider.of<MultiPartUploadProvider>(context, listen: false)
-          .uploadFile(File("$folderPath/${_caseModel.signatureFilePath}"),
-              MimeMediaType.image, _caseModel, 'signature');
-    } else {
-      return Future.value(true);
-    }
-  } */
 
   Future _getDashBoard() async {
     await Provider.of<ClaimProvider>(context, listen: false)

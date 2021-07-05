@@ -13,12 +13,10 @@ class CaseModel {
   CaseModel(
       {this.caseId,
       this.policyNumber,
-      this.investigation,
       this.insuredName,
       this.insuredDod,
       this.insuredDob,
       this.sumAssured,
-      this.intimationType,
       this.location,
       this.caseStatus,
       this.nomineeName,
@@ -35,16 +33,22 @@ class CaseModel {
       this.updatedBy,
       this.remarks,
       this.newRemarks,
-      this.caseDocs});
+      this.caseDocs,
+      this.investigationType,
+      this.gender,
+      this.investigationNature,
+      this.insuredMob,
+      this.insuredDiagnosisDate});
 
   int caseId;
   String policyNumber;
-  Investigation investigation;
   String insuredName;
   DateTime insuredDod;
   DateTime insuredDob;
+  DateTime insuredDiagnosisDate;
+  String gender;
+  String insuredMob;
   double sumAssured;
-  String intimationType;
   Location location;
   String caseStatus;
   String nomineeName;
@@ -62,24 +66,20 @@ class CaseModel {
   String remarks;
   String newRemarks;
   List<CaseDoc> caseDocs;
+  String investigationType;
+  InvestigationNature investigationNature;
 
   factory CaseModel.fromJson(Map<String, dynamic> json) => CaseModel(
         caseId: json["caseId"],
         policyNumber: json["policyNumber"],
-        investigation: json["investigation"] != null
-            ? Investigation.fromJson(json["investigation"])
-            : null,
         insuredName: json["insuredName"],
         insuredDod: json["insuredDOD"] != null && json["insuredDOD"] != ""
-            ? DateFormat('yyyy-MM-ddThh:mm:ss.000+00:00')
-                .parse(json["insuredDOD"])
+            ? DateFormat('yyyy-MM-dd').parse(json["insuredDOD"])
             : null,
-        insuredDob: json["insuredDOB"] != null && json["insuredDOD"] != ""
-            ? DateFormat('yyyy-MM-ddThh:mm:ss.000+00:00')
-                .parse(json["insuredDOB"])
+        insuredDob: json["insuredDOB"] != null && json["insuredDOB"] != ""
+            ? DateFormat('yyyy-MM-dd').parse(json["insuredDOB"])
             : null,
         sumAssured: json["sumAssured"],
-        intimationType: json["intimationType"],
         location: json["location"] != null
             ? Location.fromJson(json["location"])
             : null,
@@ -102,23 +102,29 @@ class CaseModel {
         updatedBy: json["updatedBy"],
         remarks: json["remarks"],
         newRemarks: json["newRemarks"],
-        caseDocs: json["case_Docs"] == null
+        caseDocs: json["case_Docs"] == null || json["case_Docs"] == []
             ? null
             : List<CaseDoc>.from(
                 json["case_Docs"].map((x) => CaseDoc.fromJson(x))),
+        investigationType: json["investigationType"],
+        gender: json["gender"],
+        investigationNature: json["investigationNature"] == null
+            ? null
+            : InvestigationNature.fromJson(json["investigationNature"]),
+        insuredMob: json["insuredMob"] == null ? null : json["insuredMob"],
+        insuredDiagnosisDate: json["insuredDiagnosisDate"] != null &&
+                json["insuredDiagnosisDate"] != ""
+            ? DateFormat('yyyy-MM-dd').parse(json["insuredDiagnosisDate"])
+            : null,
       );
 
   Map<String, dynamic> toJson() => {
         "caseId": caseId,
         "policyNumber": policyNumber,
-        "investigation": investigation != null ? investigation.toJson() : null,
         "insuredName": insuredName,
-        "insuredDOD":
-            DateFormat('yyyy-MM-ddThh:mm:ss.000+00:00').format(insuredDod),
-        "insuredDOB":
-            DateFormat('yyyy-MM-ddThh:mm:ss.000+00:00').format(insuredDob),
+        "insuredDOD": DateFormat('yyyy-MM-dd').format(insuredDod),
+        "insuredDOB": DateFormat('yyyy-MM-dd').format(insuredDob),
         "sumAssured": sumAssured,
-        "intimationType": intimationType,
         "location": location.toJson(),
         "caseStatus": caseStatus,
         "nominee_Name": nomineeName,
@@ -139,25 +145,27 @@ class CaseModel {
         "case_Docs": caseDocs == null
             ? null
             : List<dynamic>.from(caseDocs.map((x) => x.toJson())),
+        "investigationType": investigationType,
+        "gender": gender,
+        "investigationNature":
+            investigationNature == null ? null : investigationNature.toJson(),
+        "insuredMob": insuredMob == null ? null : insuredMob,
+        "insuredDiagnosisDate": insuredDiagnosisDate != null
+            ? DateFormat('yyyy-MM-dd').format(insuredDiagnosisDate)
+            : null,
       };
 
   factory CaseModel.fromMap(Map<String, dynamic> json) => CaseModel(
         caseId: json["caseId"],
         policyNumber: json["policyNumber"],
-        investigation: json["investigation"] != null
-            ? Investigation.fromJson(jsonDecode(json["investigation"]))
-            : null,
         insuredName: json["insuredName"],
         insuredDod: json["insuredDOD"] != null
-            ? DateFormat('yyyy-MM-ddThh:mm:ss.000+00:00')
-                .parse(json["insuredDOD"])
+            ? DateFormat('yyyy-MM-dd').parse(json["insuredDOD"])
             : null,
         insuredDob: json["insuredDOB"] != null
-            ? DateFormat('yyyy-MM-ddThh:mm:ss.000+00:00')
-                .parse(json["insuredDOB"])
+            ? DateFormat('yyyy-MM-dd').parse(json["insuredDOB"])
             : null,
         sumAssured: json["sumAssured"],
-        intimationType: json["intimationType"],
         location: json["location"] != null
             ? Location.fromJson(jsonDecode(json["location"]))
             : null,
@@ -184,22 +192,30 @@ class CaseModel {
             ? null
             : List<CaseDoc>.from(
                 jsonDecode(json["case_Docs"]).map((x) => CaseDoc.fromJson(x))),
+        investigationType: json["investigationType"],
+        gender: json["gender"],
+        investigationNature: json["investigationNature"] == null
+            ? null
+            : InvestigationNature.fromJson(
+                jsonDecode(json["investigationNature"])),
+        insuredMob: json["insuredMob"] == null ? null : json["insuredMob"],
+        insuredDiagnosisDate: json["insuredDiagnosisDate"] != null &&
+                json["insuredDiagnosisDate"] != ""
+            ? DateFormat('yyyy-MM-dd').parse(json["insuredDiagnosisDate"])
+            : null,
       );
 
   Map<String, dynamic> toMap() => {
         "caseId": caseId,
         "policyNumber": policyNumber,
-        "investigation":
-            investigation != null ? jsonEncode(investigation.toJson()) : null,
         "insuredName": insuredName,
         "insuredDOD": insuredDod != null
-            ? DateFormat('yyyy-MM-ddThh:mm:ss.000+00:00').format(insuredDod)
+            ? DateFormat('yyyy-MM-dd').format(insuredDod)
             : null,
         "insuredDOB": insuredDob != null
-            ? DateFormat('yyyy-MM-ddThh:mm:ss.000+00:00').format(insuredDob)
+            ? DateFormat('yyyy-MM-dd').format(insuredDob)
             : null,
         "sumAssured": sumAssured,
-        "intimationType": intimationType,
         "location": location != null ? jsonEncode(location.toJson()) : null,
         "caseStatus": caseStatus,
         "nominee_Name": nomineeName,
@@ -223,22 +239,36 @@ class CaseModel {
         "case_Docs": caseDocs == null
             ? null
             : jsonEncode(List<dynamic>.from(caseDocs.map((x) => x.toJson()))),
+        "investigationType": investigationType,
+        "gender": gender,
+        "investigationNature": investigationNature == null
+            ? null
+            : jsonEncode(investigationNature.toJson()),
+        "insuredMob": insuredMob == null ? null : insuredMob,
+        "insuredDiagnosisDate": insuredDiagnosisDate != null
+            ? DateFormat('yyyy-MM-dd').format(insuredDiagnosisDate)
+            : null,
       };
 }
 
-class Investigation {
-  Investigation({
-    this.investigationType,
+class InvestigationNature {
+  InvestigationNature({
+    this.natureOfInvestigationType,
   });
 
-  String investigationType;
+  String natureOfInvestigationType;
 
-  factory Investigation.fromJson(Map<String, dynamic> json) => Investigation(
-        investigationType: json["investigationType"],
+  factory InvestigationNature.fromJson(Map<String, dynamic> json) =>
+      InvestigationNature(
+        natureOfInvestigationType: json["nature_of_investigationType"] == null
+            ? null
+            : json["nature_of_investigationType"],
       );
 
   Map<String, dynamic> toJson() => {
-        "investigationType": investigationType,
+        "nature_of_investigationType": natureOfInvestigationType == null
+            ? null
+            : natureOfInvestigationType,
       };
 }
 

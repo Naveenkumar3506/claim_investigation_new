@@ -121,8 +121,8 @@ class _LoginScreenState extends BaseState<BasePage> {
                     children: [
                       SizedBox(
                           height: appHelper.isTablet(context)
-                              ? SizeConfig.screenHeight * 0.2
-                              : SizeConfig.screenHeight * 0.1),
+                              ? SizeConfig.screenHeight * 0.3
+                              : SizeConfig.screenHeight * 0.2),
                       AppFormTextField(
                         hintText: 'Enter your username',
                         hintLabel: 'Username',

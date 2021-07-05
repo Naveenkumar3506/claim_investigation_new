@@ -49,6 +49,11 @@ class DBHelper {
     await db.deleteAll(DbManager.dashBoardTable);
   }
 
+  static Future deleteAll(String table) async {
+    final db = DbManager.db;
+    await db.deleteAll(table);
+  }
+
   static Future<ReportModel> getReport() async {
     final report = await DbManager.db.queryAllRows(DbManager.dashBoardTable);
     return ReportModel.fromMap(report.first);

@@ -6,6 +6,8 @@ import 'package:claim_investigation/models/user_model.dart';
 import 'package:claim_investigation/providers/auth_provider.dart';
 import 'package:claim_investigation/providers/claim_provider.dart';
 import 'package:claim_investigation/screen/edit_profile_screen.dart';
+import 'package:claim_investigation/storage/db_helper.dart';
+import 'package:claim_investigation/storage/db_manager.dart';
 import 'package:claim_investigation/util/color_contants.dart';
 import 'package:claim_investigation/util/size_constants.dart';
 import 'package:claim_investigation/widgets/adaptive_widgets.dart';
@@ -52,6 +54,11 @@ class _ProfileScreenState extends BaseState<ProfileScreen> {
     pref.clearUserData();
     Provider.of<AuthProvider>(context, listen: false).clearUserData();
     Provider.of<ClaimProvider>(context, listen: false).clearData();
+    DBHelper.deleteAll(DbManager.caseTable);
+    DBHelper.deleteAll(DbManager.PIVCaseTable);
+    DBHelper.deleteAll(DbManager.NewCaseTable);
+    DBHelper.deleteAll(DbManager.ClosedCaseTable);
+    DBHelper.deleteAll(DbManager.InvestigatorCaseTable);
   }
 
   File _getImage() {

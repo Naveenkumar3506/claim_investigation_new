@@ -27,12 +27,16 @@ class _PIVFormsScreenState extends BaseState<PIVFormsScreen> {
   int questionIndex = 0;
   Map<String, dynamic> answers = {};
   String questionHeader = "";
+  int caseId;
 
   @override
   void initState() {
     Future.delayed(Duration(milliseconds: 50)).then((value) => getQuestions());
     if (Get.arguments != null) {
-      answers = Get.arguments;
+      answers = Provider.of<ClaimProvider>(context, listen: false)
+          .pivAnswers != null ? Provider.of<ClaimProvider>(context, listen: false)
+        .pivAnswers : {};
+      caseId = Get.arguments;
       answers.keys.forEach((e) {
         if (e != "Others") {
           setState(() {
@@ -173,10 +177,7 @@ class _PIVFormsScreenState extends BaseState<PIVFormsScreen> {
 
                                     showLoadingDialog();
                                     Provider.of<ClaimProvider>(context,
-                                        listen: false).addPIVQuestionarie(12).then((value){
-                                      Provider.of<ClaimProvider>(context,
-                                          listen: false)
-                                          .pivAnswers = null;
+                                        listen: false).addPIVQuestionarie(caseId).then((value){
                                       Navigator.pop(context);
                                       Navigator.pop(context, "done");
                                     });

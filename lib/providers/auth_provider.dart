@@ -98,7 +98,7 @@ class AuthProvider extends BaseProvider {
         "APPID": "website",
         "LID": "2623511857455",
         "BTI": "website",
-        "OTP": otp,
+        "OTP": otp.toString(),
         "CAT": "PAOTP",
         "TYPE": "B",
         "EMLID": userModel.userEmail
@@ -109,6 +109,7 @@ class AuthProvider extends BaseProvider {
 
     final response = await http.post(ApiConstant.API_OTP,
         body: json.encode(body));
+    print(response.body);
     hideLoadingIndicator();
   }
 

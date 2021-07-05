@@ -195,6 +195,7 @@ class ApiClient {
     request.fields['latitude'] = caseModel.latitude;
     request.fields['longitude'] = caseModel.longitude;
     request.fields['caseId'] = caseModel.caseId.toString();
+    request.fields['version'] = ApiConstant.API_VERSION_NUM;
 
     if (file != null) {
       if (mimeType == MimeMediaType.image) {
@@ -267,6 +268,7 @@ class ApiClient {
     request.fields['full_name'] = userModel.fullName;
     request.fields['emailId'] = userModel.userEmail;
     request.fields['contactNumber'] = userModel.mobileNumber;
+    request.fields['version'] = ApiConstant.API_VERSION_NUM;
 
     if (file != null) {
       if (mimeType == MimeMediaType.image) {

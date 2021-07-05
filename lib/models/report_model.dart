@@ -20,9 +20,9 @@ class ReportModel {
   int actionedByInvestigator;
 
   factory ReportModel.fromJson(Map<String, dynamic> json) => ReportModel(
-    pivPrvLiveCount: json["PIV/PRV/LIVE count"],
+    pivPrvLiveCount: json["PIV/PIRV/LIVE"],
     reportModelNew: json["New"],
-    claimDocumentPickup: json["Claim Document Pickup"],
+    claimDocumentPickup: json["CDP"],
     closed: json["Closed"],
     actionedByInvestigator: json["Actioned by Investigator"],
   );

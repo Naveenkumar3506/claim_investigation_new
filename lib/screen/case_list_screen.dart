@@ -120,10 +120,10 @@ class _CaseListState extends BaseState<CaseListScreen> {
                                 ),
                                 Row(
                                   children: [
-                                    Text('IntimationType : ',
+                                    Text('Nature of Investigation : ',
                                         style: TextStyle(
                                             color: Colors.grey, fontSize: 14)),
-                                    Text('${_case.intimationType ?? ""}',
+                                    Text(_case.investigationNature != null ? '${_case.investigationNature.natureOfInvestigationType ?? ""}': "",
                                         style: TextStyle(
                                             color: Colors.black, fontSize: 14)),
                                   ],
@@ -137,9 +137,24 @@ class _CaseListState extends BaseState<CaseListScreen> {
                                         style: TextStyle(
                                             color: Colors.grey, fontSize: 14)),
                                     Text(
-                                        _case.investigation != null ? '${_case.investigation.investigationType}' : "",
+                                        _case.investigationType != null ? '${_case.investigationType}' : "",
                                         style: TextStyle(
                                             color: Colors.black, fontSize: 14)),
+                                  ],
+                                ),
+                                SizedBox(
+                                  height: 5,
+                                ),
+                                Row(
+                                  children: [
+                                    Text(
+                                      'City : ',
+                                      style: TextStyle(color: Colors.grey, fontSize: 15),
+                                    ),
+                                    Text(
+                                      '${_case.location.city}',
+                                      style: TextStyle(color: Colors.black, fontSize: 15),
+                                    ),
                                   ],
                                 ),
                                 SizedBox(

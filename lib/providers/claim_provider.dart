@@ -50,6 +50,10 @@ class ClaimProvider extends BaseProvider {
     notifyListeners();
   }
 
+  notifyModel() {
+    notifyListeners();
+  }
+
   Future<ReportModel> getDashBoard() async {
     isLoading = true;
     await super
@@ -167,7 +171,7 @@ class ClaimProvider extends BaseProvider {
     });
   }
 
-  Future<List<CaseModel>> getNewCaseList(bool isRefresh, String type) async {
+  Future<List<CaseModel>> getCategoryWiseCaseList(bool isRefresh, String type) async {
     if (isRefresh) {
       caseListPageNumber = 1;
       listCases.clear();
@@ -179,22 +183,26 @@ class ClaimProvider extends BaseProvider {
       isLoading = true;
     }
 
-    String path = "";
+    String path = ApiConstant.API_GET_CATEGORYWISE_CASE_LIST;
     String tableName = DbManager.caseTable;
+    String category = "New";
     if (type == "PIV/PRV/LIVE count") {
-      path = ApiConstant.API_GET_CASE_INTIMATION_LIST;
+     // path = ApiConstant.API_GET_CASE_INTIMATION_LIST;
       tableName = DbManager.PIVCaseTable;
+      category = "PIV";
     } else if (type == "New") {
-      path = ApiConstant.API_GET_NEW_CASE_LIST;
+     // path = ApiConstant.API_GET_NEW_CASE_LIST;
       tableName = DbManager.NewCaseTable;
+      category = "New";
     } else if (type == "Claim Document Pickup") {
-      path = ApiConstant.API_GET_CDP_CASE_LIST;
+     // path = ApiConstant.API_GET_CDP_CASE_LIST;
       tableName = DbManager.CDPCaseTable;
+      category = "CDP";
     } else if (type == "Closed") {
-      path = ApiConstant.API_GET_CLOSED_CASE_LIST;
+     // path = ApiConstant.API_GET_CLOSED_CASE_LIST;
       tableName = DbManager.ClosedCaseTable;
     } else {
-      path = ApiConstant.API_GET_CASE_SUBMITTED_LIST;
+     // path = ApiConstant.API_GET_CASE_SUBMITTED_LIST;
       tableName = DbManager.InvestigatorCaseTable;
     }
 
@@ -207,7 +215,8 @@ class ClaimProvider extends BaseProvider {
               "username": pref.user.username,
               "pageNum": caseListPageNumber,
               "pagesize": fetchDataSize,
-              'version': ApiConstant.API_VERSION_NUM
+              'version': ApiConstant.API_VERSION_NUM,
+              'investigationType': category
             },
             withAuth: false)
         .then((response) {

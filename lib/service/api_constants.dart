@@ -1,10 +1,11 @@
 class ApiConstant {
   //Production
 // static const API_BASE_URL = 'https://preclaimuat.tataaia.com:4443/Pre-claim-update-uat/';
- // static const API_BASE_URL = 'https://preclaimuat.tataaia.com/Pre-claim-update-uat/';
+  static const API_BASE_URL =
+      'https://preclaimuat.tataaia.com/Pre-claim-update-uat/';
 
   // Xangars
-  static const API_BASE_URL = 'http://13.235.150.162:8080/Pre-claim-update/';
+  // static const API_BASE_URL = 'http://13.235.150.162:8080/Pre-claim-update/';
 
   // static const API_BASE_URL = 'http://172.23.44.9:8080/Pre-claim-update-uat/';
   ///
@@ -22,9 +23,12 @@ class ApiConstant {
   static const API_GET_CASE_INTIMATION_LIST = 'getCaseIntimationList';
   static const API_GET_CDP_CASE_LIST = 'getCDPCaseList';
   static const API_GET_CLOSED_CASE_LIST = 'getCaseClosedList';
+  static const API_GET_CATEGORYWISE_CASE_LIST = 'getCaseCategorywiseList';
   static const API_LOCATION_UPDATE = 'locationtrack';
   static const API_ADD_PIV_QUESTIONARIE = 'addPIVQuestionarie';
-  static const API_OTP = 'https://lpu.tataaia.com/LifePlaner/OTPGenerationServlet';
+
+  static const API_OTP =
+      'https://lpu.tataaia.com/LifePlaner/OTPGenerationServlet';
 
   static const API_VERSION_NUM = "1.0";
 }
