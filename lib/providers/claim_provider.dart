@@ -288,7 +288,7 @@ class ClaimProvider extends BaseProvider {
     });
   }
 
-  Future addPIVQuestionarie(int caseId) async {
+  Future addPIVQuestionnaire(int caseId) async {
     List<Map<String, dynamic>> questionAnswer = [];
     pivAnswers.keys.forEach((questionHeader) {
       List<dynamic> questions = pivAnswers[questionHeader];

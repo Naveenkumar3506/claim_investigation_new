@@ -128,7 +128,7 @@ class _PIVOthersFormState extends BaseState<PIVOthersForm> {
                           ? TextField(
                               controller: _controller,
                               keyboardType: TextInputType.multiline,
-                              maxLength: 200,
+                              maxLength: 600,
                               maxLines: null,
                               style: TextStyle(color: Colors.black),
                               decoration: InputDecoration(

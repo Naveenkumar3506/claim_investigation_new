@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io' as io;
 import 'package:file/local.dart';
 import 'package:claim_investigation/base/base_page.dart';
@@ -428,6 +429,15 @@ class _HomeScreenState extends BaseState<HomeScreen> {
       _signFile = io.File(folderPath + "/${signDoc.first.docName}");
     }
 
+    if (_caseModel.forms != null && _caseModel.forms != "") {
+      Provider.of<ClaimProvider>(context, listen: false).pivAnswers = jsonDecode(_caseModel.forms);
+      //---- Adding Questionnaire
+      Provider.of<ClaimProvider>(context, listen: false)
+          .addPIVQuestionnaire(_caseModel.caseId)
+          .then((value) {});
+      //
+    }
+
     var uploadCount = 0;
     var resultCount = 0;
     for (var imageDoc in listImageDoc) {
@@ -517,6 +527,9 @@ class _HomeScreenState extends BaseState<HomeScreen> {
           DBHelper.deleteCase(_caseModel, DbManager.InvestigatorCaseTable);
           final dir = io.Directory(folderPath);
           dir.deleteSync(recursive: true);
+          AppToast.toast(
+            'Sync Success ',
+          );
           return true;
         } else {
           return false;

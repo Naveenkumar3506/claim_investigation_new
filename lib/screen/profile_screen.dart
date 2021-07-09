@@ -59,6 +59,7 @@ class _ProfileScreenState extends BaseState<ProfileScreen> {
     DBHelper.deleteAll(DbManager.NewCaseTable);
     DBHelper.deleteAll(DbManager.ClosedCaseTable);
     DBHelper.deleteAll(DbManager.InvestigatorCaseTable);
+    DBHelper.deleteAll(DbManager.CDPCaseTable);
   }
 
   File _getImage() {

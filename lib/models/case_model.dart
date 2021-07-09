@@ -38,7 +38,8 @@ class CaseModel {
       this.gender,
       this.investigationNature,
       this.insuredMob,
-      this.insuredDiagnosisDate});
+      this.insuredDiagnosisDate,
+      this.forms});
 
   int caseId;
   String policyNumber;
@@ -68,6 +69,7 @@ class CaseModel {
   List<CaseDoc> caseDocs;
   String investigationType;
   InvestigationNature investigationNature;
+  String forms;
 
   factory CaseModel.fromJson(Map<String, dynamic> json) => CaseModel(
         caseId: json["caseId"],
@@ -116,6 +118,7 @@ class CaseModel {
                 json["insuredDiagnosisDate"] != ""
             ? DateFormat('yyyy-MM-dd').parse(json["insuredDiagnosisDate"])
             : null,
+        forms: json["forms"],
       );
 
   Map<String, dynamic> toJson() => {
@@ -203,6 +206,7 @@ class CaseModel {
                 json["insuredDiagnosisDate"] != ""
             ? DateFormat('yyyy-MM-dd').parse(json["insuredDiagnosisDate"])
             : null,
+        forms: json["forms"],
       );
 
   Map<String, dynamic> toMap() => {
@@ -248,6 +252,7 @@ class CaseModel {
         "insuredDiagnosisDate": insuredDiagnosisDate != null
             ? DateFormat('yyyy-MM-dd').format(insuredDiagnosisDate)
             : null,
+        "forms": forms
       };
 }
 

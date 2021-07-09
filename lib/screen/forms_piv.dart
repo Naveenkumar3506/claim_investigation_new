@@ -175,12 +175,14 @@ class _PIVFormsScreenState extends BaseState<PIVFormsScreen> {
                                             listen: false)
                                         .pivAnswers = answers;
 
-                                    showLoadingDialog();
-                                    Provider.of<ClaimProvider>(context,
-                                        listen: false).addPIVQuestionarie(caseId).then((value){
-                                      Navigator.pop(context);
-                                      Navigator.pop(context, "done");
-                                    });
+                                    Navigator.pop(context, "done");
+
+                                    // showLoadingDialog();
+                                    // Provider.of<ClaimProvider>(context,
+                                    //     listen: false).addPIVQuestionarie(caseId).then((value){
+                                    //   Navigator.pop(context);
+                                    //   Navigator.pop(context, "done");
+                                    // });
 
                                   }
                                 }
@@ -242,7 +244,7 @@ class _PIVFormsScreenState extends BaseState<PIVFormsScreen> {
                                   ? TextField(
                                       controller: _controller,
                                       keyboardType: TextInputType.multiline,
-                                      maxLength: 200,
+                                      maxLength: 600,
                                       maxLines: null,
                                       style: TextStyle(color: Colors.black),
                                       decoration: InputDecoration(

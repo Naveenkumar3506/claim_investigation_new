@@ -200,28 +200,28 @@ class ApiClient {
     if (file != null) {
       if (mimeType == MimeMediaType.image) {
         request.files.add(
-          await http.MultipartFile.fromPath('uploadedFile', file.path),
+          await http.MultipartFile.fromPath('uploadedFile', file.path).timeout(Duration(minutes: 10)),
           // await http.MultipartFile.fromPath('uploadedFile', file.path,contentType: http_parser.MediaType('image', 'jpeg')),
         );
       } else if (mimeType == MimeMediaType.video) {
         request.files.add(
-          await http.MultipartFile.fromPath('uploadedFile', file.path),
+          await http.MultipartFile.fromPath('uploadedFile', file.path).timeout(Duration(minutes: 60)),
           //  await http.MultipartFile.fromPath('uploadedFile', file.path, contentType: new http_parser.MediaType('Video', 'mpeg')),
         );
       } else if (mimeType == MimeMediaType.pdf) {
         request.files.add(
           await http.MultipartFile.fromPath('uploadedFile', file.path,
-              contentType: new http_parser.MediaType('pdf', 'pdf')),
+              contentType: new http_parser.MediaType('pdf', 'pdf')).timeout(Duration(minutes: 10)),
         );
       } else if (mimeType == MimeMediaType.audio) {
         request.files.add(
-          await http.MultipartFile.fromPath('uploadedFile', file.path),
+          await http.MultipartFile.fromPath('uploadedFile', file.path).timeout(Duration(minutes: 10)),
           //  await http.MultipartFile.fromPath('uploadedFile', file.path, contentType: new http_parser.MediaType('Audio', 'mpeg')),
         );
       } else {
         request.files.add(
           await http.MultipartFile.fromPath('uploadedFile', file.path,
-              contentType: new http_parser.MediaType('excel', 'excel')),
+              contentType: new http_parser.MediaType('excel', 'excel')).timeout(Duration(minutes: 10)),
         );
       }
     }

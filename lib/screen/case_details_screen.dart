@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io' as io;
 import 'dart:typed_data';
 import 'package:audioplayers/audioplayers.dart';
@@ -14,6 +15,7 @@ import 'package:claim_investigation/storage/db_helper.dart';
 import 'package:claim_investigation/storage/db_manager.dart';
 import 'package:claim_investigation/util/app_enum.dart';
 import 'package:claim_investigation/util/app_helper.dart';
+import 'package:claim_investigation/util/app_toast.dart';
 import 'package:claim_investigation/util/size_constants.dart';
 import 'package:claim_investigation/widgets/adaptive_widgets.dart';
 import 'package:claim_investigation/widgets/video_player_screen.dart';
@@ -33,6 +35,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:signature/signature.dart';
+import 'package:video_compress/video_compress.dart';
 import 'package:video_thumbnail/video_thumbnail.dart';
 import 'package:claim_investigation/util/color_contants.dart';
 import 'package:image/image.dart' as ui;
@@ -81,6 +84,11 @@ class _CaseDetailsScreenState extends BaseState<CaseDetailsScreen> {
   void initState() {
     Provider.of<ClaimProvider>(context, listen: false).pivAnswers = null;
     _caseModel = Get.arguments;
+    if (_caseModel.forms != null && _caseModel.forms != "") {
+      Provider.of<ClaimProvider>(context, listen: false).pivAnswers =
+          jsonDecode(_caseModel.forms);
+    }
+
     descTextController.text = _caseModel.caseDescription;
     remarksTextController.text = _caseModel.newRemarks;
     super.initState();
@@ -117,7 +125,7 @@ class _CaseDetailsScreenState extends BaseState<CaseDetailsScreen> {
             .toList()
         : [];
     for (var imageDoc in listImageDoc) {
-      if (!imageDoc.isURL) {
+      if (!imageDoc.isURL && !imageDoc.docName.contains("/")) {
         imageDoc.docName = folderPath + "/" + imageDoc.docName;
       }
     }
@@ -129,7 +137,7 @@ class _CaseDetailsScreenState extends BaseState<CaseDetailsScreen> {
             .toList()
         : [];
     for (var videoDoc in listVideoDoc) {
-      if (!videoDoc.isURL) {
+      if (!videoDoc.isURL && !videoDoc.docName.contains("/")) {
         videoDoc.docName = folderPath + "/" + videoDoc.docName;
       }
     }
@@ -140,7 +148,7 @@ class _CaseDetailsScreenState extends BaseState<CaseDetailsScreen> {
             .toList()
         : [];
     for (var pdfDoc in listPDFDoc) {
-      if (!pdfDoc.isURL) {
+      if (!pdfDoc.isURL && !pdfDoc.docName.contains("/")) {
         pdfDoc.docName = folderPath + "/" + pdfDoc.docName;
       }
     }
@@ -152,8 +160,10 @@ class _CaseDetailsScreenState extends BaseState<CaseDetailsScreen> {
             .toList()
         : [];
     if (audioDoc.isNotEmpty) {
-      _audioFile =
-          localFileSystem.file("$folderPath/${audioDoc.first.docName}");
+      if (!audioDoc.first.isURL && !audioDoc.first.docName.contains("/")) {
+        _audioFile =
+            localFileSystem.file("$folderPath/${audioDoc.first.docName}");
+      }
     }
 
     final excelDoc = _caseModel.caseDocs != null
@@ -162,8 +172,10 @@ class _CaseDetailsScreenState extends BaseState<CaseDetailsScreen> {
             .toList()
         : [];
     if (excelDoc.isNotEmpty) {
-      _documentFile = io.File(folderPath + "/${excelDoc.first.docName}");
-      documentTextController.text = 'Excel';
+      if (!excelDoc.first.isURL && !excelDoc.first.docName.contains("/")) {
+        _documentFile = io.File(folderPath + "/${excelDoc.first.docName}");
+        documentTextController.text = 'Excel';
+      }
     }
     setState(() {});
   }
@@ -380,6 +392,11 @@ class _CaseDetailsScreenState extends BaseState<CaseDetailsScreen> {
           });
         }
 
+        //---- Adding Questionnaire
+        Provider.of<ClaimProvider>(context, listen: false)
+            .addPIVQuestionnaire(_caseModel.caseId)
+            .then((value) {});
+
         var uploadCount = 0;
         var resultCount = 0;
         for (var imageDoc in listWaterMarkImages) {
@@ -470,8 +487,7 @@ class _CaseDetailsScreenState extends BaseState<CaseDetailsScreen> {
             //
             await Provider.of<ClaimProvider>(context, listen: false)
                 .getCaseFromDB()
-                .then((value) {
-            });
+                .then((value) {});
             //
             Provider.of<ClaimProvider>(context, listen: false).notifyModel();
             Get.back();
@@ -610,11 +626,22 @@ class _CaseDetailsScreenState extends BaseState<CaseDetailsScreen> {
         if (newCaseDoc.isNotEmpty) {
           _caseModel.caseDocs = newCaseDoc;
         }
+        // Save PIV form
+        final claimProvider =
+            Provider.of<ClaimProvider>(context, listen: false);
+        if (claimProvider.pivAnswers != null &&
+            claimProvider.pivAnswers != {}) {
+          _caseModel.forms = jsonEncode(claimProvider.pivAnswers);
+        }
+        //
         await DBHelper.saveCase(_caseModel, DbManager.syncCaseTable);
         print(pref.caseTypeSelected);
         //
         if (pref.caseTypeSelected != null && pref.caseTypeSelected == 'All') {
           await DBHelper.updateCaseDetail(_caseModel, DbManager.caseTable);
+          await DBHelper.updateCaseDetail(_caseModel, DbManager.PIVCaseTable);
+          await DBHelper.updateCaseDetail(_caseModel, DbManager.NewCaseTable);
+          await DBHelper.updateCaseDetail(_caseModel, DbManager.CDPCaseTable);
         } else if (pref.caseTypeSelected != null &&
             pref.caseTypeSelected == 'PIV/PRV/LIVE count') {
           await DBHelper.updateCaseDetail(_caseModel, DbManager.PIVCaseTable);
@@ -633,7 +660,10 @@ class _CaseDetailsScreenState extends BaseState<CaseDetailsScreen> {
           await DBHelper.updateCaseDetail(
               _caseModel, DbManager.InvestigatorCaseTable);
         }
+        await DBHelper.updateCaseDetail(_caseModel, DbManager.caseTable);
         Navigator.pop(context);
+        Get.back();
+        AppToast.toast("Saved as Draft");
       }
     }, onError: (error) {
       Navigator.pop(context);
@@ -1367,6 +1397,7 @@ class _CaseDetailsScreenState extends BaseState<CaseDetailsScreen> {
                           await getVideoFile(ImageSource.camera)
                               .then((file) async {
                             if (file != null) {
+                              showLoadingDialog();
                               final thumbnail =
                                   await VideoThumbnail.thumbnailData(
                                 video: file.path,
@@ -1374,10 +1405,21 @@ class _CaseDetailsScreenState extends BaseState<CaseDetailsScreen> {
                                 maxWidth: 500,
                                 quality: 25,
                               );
+                              final info =
+                                  await VideoCompress.getMediaInfo(file.path);
+                              MediaInfo mediaInfo =
+                                  await VideoCompress.compressVideo(
+                                file.path,
+                                quality: VideoQuality.DefaultQuality,
+                                deleteOrigin: false, // It's false by default
+                              );
+                              Navigator.pop(context);
+                              print("Original size - ${info.filesize}");
+                              print("compress size - ${mediaInfo.filesize}");
                               setState(() {
                                 var newVideo = CaseDoc();
                                 newVideo.isURL = false;
-                                newVideo.docName = file.path;
+                                newVideo.docName = mediaInfo.path;
                                 newVideo.docType = DocType.VIDEO;
                                 newVideo.thumbnail = thumbnail;
                                 listVideoDoc.add(newVideo);
@@ -1864,9 +1906,8 @@ class _CaseDetailsScreenState extends BaseState<CaseDetailsScreen> {
               trailing: ElevatedButton(
                 child: Text(isPIVFormFilled ? "View" : " Form "),
                 onPressed: () async {
-                  final status =
-                      await Get.toNamed(PIVFormsScreen.routeName, arguments: _caseModel.caseId
-                  );
+                  final status = await Get.toNamed(PIVFormsScreen.routeName,
+                      arguments: _caseModel.caseId);
                   print("");
                   if (status != null && status == "done") {
                     setState(() {
